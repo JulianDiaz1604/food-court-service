@@ -1,15 +1,17 @@
 server:
-  port: 8081
+  port: 8082
 
 spring:
+  application:
+    name: food-court-service
   datasource:
-    url: jdbc:mysql://localhost:3306/powerup
-    username: root
-    password: 1234
-
+    url: jdbc:postgresql://localhost:5432/${DB_NAME:plazoleta_food_court}
+    username: ${DB_USERNAME:postgres}
+    password: ${DB_PASSWORD:postgres}
   jpa:
     hibernate:
       ddl-auto: update
     show-sql: true
-appDescription: "Pragma Powerup"
+
+appDescription: "food-court-service - Plazoleta de comidas (PRAGMA PowerUp)"
 appVersion: "1.0.0"
