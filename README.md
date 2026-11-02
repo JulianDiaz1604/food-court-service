@@ -1,6 +1,6 @@
 # food-court-service
 
-Restaurants, dishes and orders — microservice of the **Plazoleta de comidas** challenge (PRAGMA PowerUp).
+Restaurants, dishes and orders — microservice of the **Plazoleta de comidas** challenge (PRAGMA).
 
 ## User stories
 
