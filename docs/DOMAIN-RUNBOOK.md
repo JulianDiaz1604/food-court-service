@@ -40,3 +40,31 @@ business rules, invariants, and the custom-exception → message → HTTP-status
 | `InvalidNitException` | The NIT must contain digits only | 400 |
 | `InvalidPhoneFormatException` | The phone must be numeric, may start with '+', and have at most 13 characters | 400 |
 | `InvalidOwnerException` | The provided owner id does not belong to a registered owner | 400 |
+
+---
+
+## HU3 — Create dish
+
+- **Endpoint:** `POST /api/v1/dishes`
+- **Use case:** `DishUseCase.createDish`
+- **Validator:** `DishValidator.validateNewDish`
+- **Cross-aggregate port:** `IRestaurantPersistencePort.findRestaurantById` → `RestaurantJpaAdapter`
+  (loads the target restaurant to check existence and ownership).
+
+### Business rules / invariants
+- All fields required: `name`, `price`, `description`, `imageUrl`, `category`, `restaurantId`.
+- `price` must be a positive integer **greater than zero**.
+- `active` is forced to `true` on creation (never trusted from the request).
+- The `restaurantId` must reference an existing restaurant; otherwise the dish is rejected.
+- A dish can only be created by the **owner of that restaurant** — the requester `ownerId` must
+  match the restaurant's `ownerId`.
+- The JWT authorization gate (only a logged-in Owner may hit this endpoint) arrives in **HU5**;
+  HU3 validates ownership against the restaurant record only.
+
+### Exceptions
+| Exception | Message | HTTP |
+|-----------|---------|------|
+| `RequiredFieldException` | All fields are required | 400 |
+| `InvalidPriceException` | The dish price must be a positive number greater than zero | 400 |
+| `RestaurantNotFoundException` | The restaurant does not exist | 404 |
+| `NotRestaurantOwnerException` | The dish can only be created by the owner of the restaurant | 403 |

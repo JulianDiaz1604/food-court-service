@@ -19,4 +19,12 @@ public final class DomainConstants {
     public static final String INVALID_NIT_MESSAGE = "The NIT must contain digits only";
     public static final String INVALID_OWNER_MESSAGE =
             "The provided owner id does not belong to a registered owner";
+
+    public static final int DISH_PRICE_MINIMUM = 0;
+
+    public static final String INVALID_PRICE_MESSAGE =
+            "The dish price must be a positive number greater than zero";
+    public static final String RESTAURANT_NOT_FOUND_MESSAGE = "The restaurant does not exist";
+    public static final String NOT_RESTAURANT_OWNER_MESSAGE =
+            "The dish can only be created by the owner of the restaurant";
 }

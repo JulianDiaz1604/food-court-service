@@ -1,0 +1,29 @@
+package com.pragma.foodcourt.application.handler.impl;
+
+import com.pragma.foodcourt.application.dto.request.CreateDishRequestDto;
+import com.pragma.foodcourt.application.dto.response.DishResponseDto;
+import com.pragma.foodcourt.application.handler.IDishHandler;
+import com.pragma.foodcourt.application.mapper.IDishRequestMapper;
+import com.pragma.foodcourt.application.mapper.IDishResponseMapper;
+import com.pragma.foodcourt.domain.api.IDishServicePort;
+import com.pragma.foodcourt.domain.model.Dish;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+@Service
+@RequiredArgsConstructor
+@Transactional
+public class DishHandler implements IDishHandler {
+
+    private final IDishServicePort dishServicePort;
+    private final IDishRequestMapper dishRequestMapper;
+    private final IDishResponseMapper dishResponseMapper;
+
+    @Override
+    public DishResponseDto createDish(CreateDishRequestDto request) {
+        Dish createdDish = dishServicePort.createDish(
+                dishRequestMapper.toDish(request), request.getOwnerId());
+        return dishResponseMapper.toResponse(createdDish);
+    }
+}
