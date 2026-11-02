@@ -1,28 +1,52 @@
 package com.pragma.foodcourt.infrastructure.configuration;
 
-import com.pragma.foodcourt.domain.api.IObjectServicePort;
-import com.pragma.foodcourt.domain.spi.IObjectPersistencePort;
-import com.pragma.foodcourt.domain.usecase.ObjectUseCase;
-import com.pragma.foodcourt.infrastructure.out.jpa.adapter.ObjectJpaAdapter;
-import com.pragma.foodcourt.infrastructure.out.jpa.mapper.IObjectEntityMapper;
-import com.pragma.foodcourt.infrastructure.out.jpa.repository.IObjectRepository;
+import com.pragma.foodcourt.domain.api.IRestaurantServicePort;
+import com.pragma.foodcourt.domain.spi.IRestaurantPersistencePort;
+import com.pragma.foodcourt.domain.spi.IUserValidationPort;
+import com.pragma.foodcourt.domain.usecase.RestaurantUseCase;
+import com.pragma.foodcourt.domain.validation.RestaurantValidator;
+import com.pragma.foodcourt.infrastructure.out.client.UserValidationRestClientAdapter;
+import com.pragma.foodcourt.infrastructure.out.jpa.adapter.RestaurantJpaAdapter;
+import com.pragma.foodcourt.infrastructure.out.jpa.mapper.IRestaurantEntityMapper;
+import com.pragma.foodcourt.infrastructure.out.jpa.repository.IRestaurantRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.web.client.RestClient;
 
 @Configuration
 @RequiredArgsConstructor
 public class BeanConfiguration {
-    private final IObjectRepository objectRepository;
-    private final IObjectEntityMapper objectEntityMapper;
+
+    private final IRestaurantRepository restaurantRepository;
+    private final IRestaurantEntityMapper restaurantEntityMapper;
+
+    @Value("${users-service.base-url}")
+    private String usersServiceBaseUrl;
 
     @Bean
-    public IObjectPersistencePort objectPersistencePort() {
-        return new ObjectJpaAdapter(objectRepository, objectEntityMapper);
+    public RestClient usersRestClient() {
+        return RestClient.create(usersServiceBaseUrl);
     }
 
     @Bean
-    public IObjectServicePort objectServicePort() {
-        return new ObjectUseCase(objectPersistencePort());
+    public IUserValidationPort userValidationPort() {
+        return new UserValidationRestClientAdapter(usersRestClient());
+    }
+
+    @Bean
+    public IRestaurantPersistencePort restaurantPersistencePort() {
+        return new RestaurantJpaAdapter(restaurantRepository, restaurantEntityMapper);
+    }
+
+    @Bean
+    public RestaurantValidator restaurantValidator() {
+        return new RestaurantValidator();
+    }
+
+    @Bean
+    public IRestaurantServicePort restaurantServicePort() {
+        return new RestaurantUseCase(restaurantPersistencePort(), userValidationPort(), restaurantValidator());
     }
 }
