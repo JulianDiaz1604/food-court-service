@@ -43,7 +43,7 @@ class RestaurantUseCaseTest {
 
     @Test
     @DisplayName("Persists the restaurant when data is valid and owner id belongs to an owner")
-    void createRestaurant_withValidOwner_persistsRestaurant() {
+    void shouldPersistRestaurantWhenOwnerIsValid() {
         when(userValidationPort.isOwner(2L)).thenReturn(true);
         when(restaurantPersistencePort.saveRestaurant(any(Restaurant.class)))
                 .thenAnswer(invocation -> invocation.getArgument(0));
@@ -57,7 +57,7 @@ class RestaurantUseCaseTest {
 
     @Test
     @DisplayName("Rejects when the owner id does not belong to an owner")
-    void createRestaurant_whenOwnerIdIsNotAnOwner_throwsInvalidOwnerException() {
+    void shouldThrowWhenOwnerIdIsNotAnOwner() {
         when(userValidationPort.isOwner(2L)).thenReturn(false);
 
         assertThrows(InvalidOwnerException.class, () -> restaurantUseCase.createRestaurant(validRestaurant));
@@ -66,7 +66,7 @@ class RestaurantUseCaseTest {
 
     @Test
     @DisplayName("Does not call users-service when field validation already fails")
-    void createRestaurant_whenValidationFails_doesNotCallUserValidation() {
+    void shouldNotCallUserValidationWhenFieldValidationFails() {
         validRestaurant.setName("12345");
 
         assertThrows(InvalidRestaurantNameException.class,
