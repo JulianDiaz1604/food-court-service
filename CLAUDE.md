@@ -12,7 +12,7 @@ A food-court ordering backend split into **four independent microservices** (one
 |------|----------------|-----------|
 | `users-service` | Users, roles, authentication (JWT) | PostgreSQL |
 | `food-court-service` | Restaurants, dishes, orders | PostgreSQL |
-| `messaging-service` | SMS notifications + security PIN (Twilio/SNS) | PostgreSQL |
+| `messaging-service` | SMS notifications + security PIN (AWS SNS) | PostgreSQL |
 | `traceability-service` | Order status history & efficiency metrics | MongoDB |
 
 Order lifecycle: `PENDING → IN_PREPARATION → READY → DELIVERED`, plus `PENDING → CANCELLED`.
@@ -81,7 +81,20 @@ Hard rules:
 ## 7. Working rules
 
 - Work **one HU at a time**; keep the scope of each HU isolated.
-- Every microservice documents its API with **OpenAPI** (springdoc), controllers under `/api/v1/...`.
+- **OpenAPI is mandatory.** Every microservice documents its API with **OpenAPI** (springdoc),
+  controllers under `/api/v1/...`. Every HU that adds or changes an endpoint keeps its OpenAPI
+  documentation current — it is part of the HU's done-criteria, not optional.
+- **Messaging uses AWS SNS.** The SMS + security-PIN flow (HU14, `messaging-service`) is built on
+  **AWS SNS** (replacing Twilio). Model the messaging integration behind an SPI port with an SNS
+  adapter in `infrastructure`, so the domain never depends on the provider.
+- **Order state machine is built at its HU.** The lifecycle in §1 is the reference only; implement
+  the state transitions when the owning HU arrives (HU13 / HU15 / HU16 in `food-court-service`),
+  not before.
+- **HU completion checklist (MANDATORY).** When an HU is finished, before merge/PR, present: the
+  HU's name, user-story description, role, and acceptance criteria (verbatim from `docs/reto/`),
+  plus a **checklist** mapping each acceptance criterion and each standing rule (custom exceptions
+  + validator + runbook, unit tests, OpenAPI docs, hexagonal boundaries) to a checkable item, so
+  compliance is reviewed together before the HU is closed.
 - Keep the hexagonal boundaries clean on every change. When in doubt, the domain stays pure.
 
 ## 8. Run locally
