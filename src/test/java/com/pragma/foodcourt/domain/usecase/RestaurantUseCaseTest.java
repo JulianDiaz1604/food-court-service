@@ -13,16 +13,19 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.util.UUID;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class RestaurantUseCaseTest {
+
+    private static final UUID OWNER_ID = UUID.randomUUID();
 
     @Mock
     private IRestaurantPersistencePort restaurantPersistencePort;
@@ -38,27 +41,27 @@ class RestaurantUseCaseTest {
         restaurantUseCase = new RestaurantUseCase(
                 restaurantPersistencePort, userValidationPort, new RestaurantValidator());
         validRestaurant = new Restaurant(null, "Tablaito", "900123456",
-                "Calle 1 # 2-3", "+573005698325", "http://logo/tablaito.png", 2L);
+                "Calle 1 # 2-3", "+573005698325", "http://logo/tablaito.png", OWNER_ID);
     }
 
     @Test
     @DisplayName("Persists the restaurant when data is valid and owner id belongs to an owner")
     void shouldPersistRestaurantWhenOwnerIsValid() {
-        when(userValidationPort.isOwner(2L)).thenReturn(true);
+        when(userValidationPort.isOwner(OWNER_ID)).thenReturn(true);
         when(restaurantPersistencePort.saveRestaurant(any(Restaurant.class)))
                 .thenAnswer(invocation -> invocation.getArgument(0));
 
         Restaurant result = restaurantUseCase.createRestaurant(validRestaurant);
 
         assertEquals("Tablaito", result.getName());
-        verify(userValidationPort).isOwner(2L);
+        verify(userValidationPort).isOwner(OWNER_ID);
         verify(restaurantPersistencePort).saveRestaurant(validRestaurant);
     }
 
     @Test
     @DisplayName("Rejects when the owner id does not belong to an owner")
     void shouldThrowWhenOwnerIdIsNotAnOwner() {
-        when(userValidationPort.isOwner(2L)).thenReturn(false);
+        when(userValidationPort.isOwner(OWNER_ID)).thenReturn(false);
 
         assertThrows(InvalidOwnerException.class, () -> restaurantUseCase.createRestaurant(validRestaurant));
         verify(restaurantPersistencePort, never()).saveRestaurant(any());
@@ -71,7 +74,7 @@ class RestaurantUseCaseTest {
 
         assertThrows(InvalidRestaurantNameException.class,
                 () -> restaurantUseCase.createRestaurant(validRestaurant));
-        verify(userValidationPort, never()).isOwner(anyLong());
+        verify(userValidationPort, never()).isOwner(any(UUID.class));
         verify(restaurantPersistencePort, never()).saveRestaurant(any());
     }
 }

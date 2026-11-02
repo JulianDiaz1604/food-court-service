@@ -9,6 +9,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
+import java.util.UUID;
+
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
@@ -20,7 +22,7 @@ class RestaurantValidatorTest {
     @BeforeEach
     void setUp() {
         validRestaurant = new Restaurant(null, "Tablaito", "900123456",
-                "Calle 1 # 2-3", "+573005698325", "http://logo/tablaito.png", 2L);
+                "Calle 1 # 2-3", "+573005698325", "http://logo/tablaito.png", UUID.randomUUID());
     }
 
     @Test

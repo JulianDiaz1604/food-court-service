@@ -7,6 +7,8 @@ import com.pragma.foodcourt.domain.spi.IRestaurantPersistencePort;
 import com.pragma.foodcourt.domain.spi.IUserValidationPort;
 import com.pragma.foodcourt.domain.validation.RestaurantValidator;
 
+import java.util.UUID;
+
 public class RestaurantUseCase implements IRestaurantServicePort {
 
     private final IRestaurantPersistencePort restaurantPersistencePort;
@@ -28,7 +30,7 @@ public class RestaurantUseCase implements IRestaurantServicePort {
         return restaurantPersistencePort.saveRestaurant(restaurant);
     }
 
-    private void ensureOwnerIsValid(Long ownerId) {
+    private void ensureOwnerIsValid(UUID ownerId) {
         if (!userValidationPort.isOwner(ownerId)) {
             throw new InvalidOwnerException();
         }

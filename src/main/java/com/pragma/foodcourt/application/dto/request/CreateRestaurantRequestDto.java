@@ -5,6 +5,8 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.util.UUID;
+
 @Getter
 @Setter
 @NoArgsConstructor
@@ -15,5 +17,5 @@ public class CreateRestaurantRequestDto {
     private String address;
     private String phone;
     private String logoUrl;
-    private Long ownerId;
+    private UUID ownerId;
 }

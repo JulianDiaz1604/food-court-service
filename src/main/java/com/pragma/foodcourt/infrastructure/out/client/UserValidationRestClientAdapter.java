@@ -6,6 +6,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestClient;
 
+import java.util.UUID;
+
 /**
  * Validates restaurant owners against the users-service over HTTP (Spring RestClient).
  * Implements the domain SPI port, keeping the transport out of the domain.
@@ -18,7 +20,7 @@ public class UserValidationRestClientAdapter implements IUserValidationPort {
     private final RestClient usersRestClient;
 
     @Override
-    public boolean isOwner(Long userId) {
+    public boolean isOwner(UUID userId) {
         if (userId == null) {
             return false;
         }
