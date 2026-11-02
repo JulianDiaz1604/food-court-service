@@ -1,5 +1,6 @@
 package com.pragma.foodcourt.infrastructure.exceptionhandler;
 
+import com.pragma.foodcourt.domain.exception.DomainException;
 import com.pragma.foodcourt.infrastructure.exception.NoDataFoundException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -14,11 +15,16 @@ public class ControllerAdvisor {
 
     private static final String MESSAGE = "message";
 
+    @ExceptionHandler(DomainException.class)
+    public ResponseEntity<Map<String, String>> handleDomainException(DomainException exception) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(Collections.singletonMap(MESSAGE, exception.getMessage()));
+    }
+
     @ExceptionHandler(NoDataFoundException.class)
     public ResponseEntity<Map<String, String>> handleNoDataFoundException(
             NoDataFoundException ignoredNoDataFoundException) {
         return ResponseEntity.status(HttpStatus.NOT_FOUND)
                 .body(Collections.singletonMap(MESSAGE, ExceptionResponse.NO_DATA_FOUND.getMessage()));
     }
-    
 }

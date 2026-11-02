@@ -7,9 +7,14 @@ import lombok.Setter;
 
 @Getter
 @Setter
-@AllArgsConstructor
 @NoArgsConstructor
-public class ObjectModel {
+@AllArgsConstructor
+public class Restaurant {
     private Long id;
     private String name;
+    private String nit;
+    private String address;
+    private String phone;
+    private String logoUrl;
+    private Long ownerId;
 }
