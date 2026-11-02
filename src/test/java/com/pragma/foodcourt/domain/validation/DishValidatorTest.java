@@ -3,6 +3,7 @@ package com.pragma.foodcourt.domain.validation;
 import com.pragma.foodcourt.domain.exception.InvalidPriceException;
 import com.pragma.foodcourt.domain.exception.RequiredFieldException;
 import com.pragma.foodcourt.domain.model.Dish;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -84,5 +85,51 @@ class DishValidatorTest {
     void shouldThrowWhenPriceIsNegative() {
         validDish.setPrice(-10);
         assertThrows(InvalidPriceException.class, () -> validator.validateNewDish(validDish));
+    }
+
+    @Nested
+    @DisplayName("validateDishUpdate")
+    class ValidateDishUpdate {
+
+        @Test
+        @DisplayName("Accepts a positive price and a non-blank description")
+        void shouldAcceptValidUpdate() {
+            assertDoesNotThrow(() -> validator.validateDishUpdate(30000, "New description"));
+        }
+
+        @Test
+        @DisplayName("Rejects a null price")
+        void shouldThrowWhenPriceIsNull() {
+            assertThrows(RequiredFieldException.class,
+                    () -> validator.validateDishUpdate(null, "New description"));
+        }
+
+        @Test
+        @DisplayName("Rejects a blank description")
+        void shouldThrowWhenDescriptionIsBlank() {
+            assertThrows(RequiredFieldException.class,
+                    () -> validator.validateDishUpdate(30000, "   "));
+        }
+
+        @Test
+        @DisplayName("Rejects a null description")
+        void shouldThrowWhenDescriptionIsNull() {
+            assertThrows(RequiredFieldException.class,
+                    () -> validator.validateDishUpdate(30000, null));
+        }
+
+        @Test
+        @DisplayName("Rejects a zero price")
+        void shouldThrowWhenPriceIsZero() {
+            assertThrows(InvalidPriceException.class,
+                    () -> validator.validateDishUpdate(0, "New description"));
+        }
+
+        @Test
+        @DisplayName("Rejects a negative price")
+        void shouldThrowWhenPriceIsNegative() {
+            assertThrows(InvalidPriceException.class,
+                    () -> validator.validateDishUpdate(-5, "New description"));
+        }
     }
 }

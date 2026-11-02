@@ -12,6 +12,13 @@ public class DishValidator {
         validatePrice(dish.getPrice());
     }
 
+    public void validateDishUpdate(Integer price, String description) {
+        if (price == null || isBlank(description)) {
+            throw new RequiredFieldException();
+        }
+        validatePrice(price);
+    }
+
     private void validateRequiredFields(Dish dish) {
         if (isBlank(dish.getName())
                 || isBlank(dish.getDescription())

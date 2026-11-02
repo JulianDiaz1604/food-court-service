@@ -26,5 +26,6 @@ public final class DomainConstants {
             "The dish price must be a positive number greater than zero";
     public static final String RESTAURANT_NOT_FOUND_MESSAGE = "The restaurant does not exist";
     public static final String NOT_RESTAURANT_OWNER_MESSAGE =
-            "The dish can only be created by the owner of the restaurant";
+            "The dish can only be managed by the owner of the restaurant";
+    public static final String DISH_NOT_FOUND_MESSAGE = "The dish does not exist";
 }

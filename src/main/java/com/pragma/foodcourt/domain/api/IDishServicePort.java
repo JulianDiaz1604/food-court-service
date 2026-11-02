@@ -6,4 +6,6 @@ import java.util.UUID;
 
 public interface IDishServicePort {
     Dish createDish(Dish dish, UUID ownerId);
+
+    Dish updateDish(UUID dishId, Integer price, String description, UUID ownerId);
 }
