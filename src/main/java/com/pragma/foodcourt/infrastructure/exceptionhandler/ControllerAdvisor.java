@@ -1,5 +1,6 @@
 package com.pragma.foodcourt.infrastructure.exceptionhandler;
 
+import com.pragma.foodcourt.domain.exception.DishNotFoundException;
 import com.pragma.foodcourt.domain.exception.DomainException;
 import com.pragma.foodcourt.domain.exception.NotRestaurantOwnerException;
 import com.pragma.foodcourt.domain.exception.RestaurantNotFoundException;
@@ -20,6 +21,13 @@ public class ControllerAdvisor {
     @ExceptionHandler(RestaurantNotFoundException.class)
     public ResponseEntity<Map<String, String>> handleRestaurantNotFoundException(
             RestaurantNotFoundException exception) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(Collections.singletonMap(MESSAGE, exception.getMessage()));
+    }
+
+    @ExceptionHandler(DishNotFoundException.class)
+    public ResponseEntity<Map<String, String>> handleDishNotFoundException(
+            DishNotFoundException exception) {
         return ResponseEntity.status(HttpStatus.NOT_FOUND)
                 .body(Collections.singletonMap(MESSAGE, exception.getMessage()));
     }

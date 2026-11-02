@@ -7,6 +7,8 @@ import com.pragma.foodcourt.infrastructure.out.jpa.mapper.IDishEntityMapper;
 import com.pragma.foodcourt.infrastructure.out.jpa.repository.IDishRepository;
 import lombok.RequiredArgsConstructor;
 
+import java.util.UUID;
+
 @RequiredArgsConstructor
 public class DishJpaAdapter implements IDishPersistencePort {
 
@@ -17,5 +19,12 @@ public class DishJpaAdapter implements IDishPersistencePort {
     public Dish saveDish(Dish dish) {
         DishEntity savedEntity = dishRepository.save(dishEntityMapper.toEntity(dish));
         return dishEntityMapper.toDish(savedEntity);
+    }
+
+    @Override
+    public Dish findDishById(UUID dishId) {
+        return dishRepository.findById(dishId)
+                .map(dishEntityMapper::toDish)
+                .orElse(null);
     }
 }
