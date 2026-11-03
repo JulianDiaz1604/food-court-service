@@ -23,10 +23,12 @@ public class RestaurantRestController {
 
     private final IRestaurantHandler restaurantHandler;
 
-    @Operation(summary = "Create a restaurant")
+    @Operation(summary = "Create a restaurant (administrator only)")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "201", description = "Restaurant created"),
-            @ApiResponse(responseCode = "400", description = "Invalid restaurant data or owner id")
+            @ApiResponse(responseCode = "400", description = "Invalid restaurant data or owner id"),
+            @ApiResponse(responseCode = "401", description = "Authentication is required"),
+            @ApiResponse(responseCode = "403", description = "Requester is not an administrator")
     })
     @PostMapping
     public ResponseEntity<RestaurantResponseDto> createRestaurant(

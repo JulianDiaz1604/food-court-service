@@ -7,7 +7,7 @@ import com.pragma.foodcourt.application.dto.response.DishResponseDto;
 import java.util.UUID;
 
 public interface IDishHandler {
-    DishResponseDto createDish(CreateDishRequestDto request);
+    DishResponseDto createDish(CreateDishRequestDto request, UUID ownerId);
 
-    DishResponseDto updateDish(UUID dishId, UpdateDishRequestDto request);
+    DishResponseDto updateDish(UUID dishId, UpdateDishRequestDto request, UUID ownerId);
 }

@@ -11,6 +11,8 @@ business rules, invariants, and the custom-exception → message → HTTP-status
 - Cross-service checks (e.g. owner role) live in the use case behind a domain SPI port, never in
   the pure validator.
 - `ControllerAdvisor` maps every exception family and returns `{ "message": ... }`.
+- **Authentication/authorization (HU5)** is an infrastructure concern: a stateless JWT filter and
+  role-based rules in `infrastructure/configuration/security`. The domain stays unaware of it.
 
 ---
 
@@ -97,3 +99,34 @@ business rules, invariants, and the custom-exception → message → HTTP-status
 | `InvalidPriceException` | The dish price must be a positive number greater than zero | 400 |
 | `DishNotFoundException` | The dish does not exist | 404 |
 | `NotRestaurantOwnerException` | The dish can only be managed by the owner of the restaurant | 403 |
+
+---
+
+## HU5 — Authentication / JWT (authorization side)
+
+This service does **not** issue tokens; `users-service` does. Here HU5 **verifies** the JWT (shared
+HS256 secret, `jwt.secret`) and enforces role-based access. Implemented entirely in
+`infrastructure/configuration/security` — the domain and application layers are untouched except that
+the requester's identity now comes from the token instead of the request body.
+
+### Components
+- `JwtTokenValidator` — verifies the signature/expiry and extracts the user id (subject) and role.
+- `JwtAuthenticationFilter` — on each request, sets the authenticated user id (principal) and a
+  single `ROLE_<role>` authority.
+- `SecurityConfig` — stateless `SecurityFilterChain` with the authorization rules below.
+- `JwtAuthenticationEntryPoint` — returns **401** JSON when no valid token is present.
+
+### Endpoint authorization
+| Endpoint | Rule |
+|----------|------|
+| `POST /api/v1/restaurants` | role **ADMINISTRATOR** (the assigned `ownerId` stays in the body) |
+| `POST /api/v1/dishes` | role **OWNER**; the owner id is taken from the token, not the body |
+| `PATCH /api/v1/dishes/{dishId}` | role **OWNER**; the owner id is taken from the token, not the body |
+| Swagger UI / OpenAPI docs | public |
+| any other request | authenticated |
+
+### Behavior notes
+- `CreateDishRequestDto` / `UpdateDishRequestDto` **no longer carry `ownerId`**; the controller reads
+  it from the authenticated principal (`@AuthenticationPrincipal`) and passes it to the use case, so
+  the existing "owner owns the restaurant" rule (`NotRestaurantOwnerException`, 403) still applies.
+- Unauthenticated access → **401**; authenticated but wrong role → **403** (Spring Security).
