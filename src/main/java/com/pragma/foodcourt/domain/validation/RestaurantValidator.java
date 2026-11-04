@@ -34,7 +34,9 @@ public class RestaurantValidator {
     }
 
     private void validateNit(String nit) {
-        if (!nit.matches(DomainConstants.NIT_REGEX)) {
+        if (!nit.matches(DomainConstants.NIT_REGEX)
+                || nit.length() < DomainConstants.NIT_MIN_LENGTH
+                || nit.length() > DomainConstants.NIT_MAX_LENGTH) {
             throw new InvalidNitException();
         }
     }

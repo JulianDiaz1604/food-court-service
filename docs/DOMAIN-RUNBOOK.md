@@ -27,7 +27,9 @@ business rules, invariants, and the custom-exception → message → HTTP-status
 ### Business rules / invariants
 - All fields required: `name`, `nit`, `address`, `phone`, `logoUrl`, `ownerId`.
 - `name` cannot be made of numbers only — it must contain at least one letter.
-- `nit`: digits only.
+- `nit`: digits only, **between 9 and 10 characters** (Colombian NIT: 9-digit base + verification digit).
+- `nit` must be **unique** — two restaurants cannot share the same NIT (checked in the use case and
+  backed by a unique column on the `restaurants` table).
 - `phone`: digits only, optional leading `+`, max 13 characters.
 - `ownerId` must reference a user that exists in `users-service` **and** holds the **OWNER** role
   (role id 2). A missing user or a non-owner role is rejected.
@@ -39,9 +41,10 @@ business rules, invariants, and the custom-exception → message → HTTP-status
 |-----------|---------|------|
 | `RequiredFieldException` | All fields are required | 400 |
 | `InvalidRestaurantNameException` | The restaurant name cannot contain only numbers | 400 |
-| `InvalidNitException` | The NIT must contain digits only | 400 |
+| `InvalidNitException` | The NIT must be numeric and contain between 9 and 10 digits | 400 |
 | `InvalidPhoneFormatException` | The phone must be numeric, may start with '+', and have at most 13 characters | 400 |
 | `InvalidOwnerException` | The provided owner id does not belong to a registered owner | 400 |
+| `NitAlreadyExistsException` | A restaurant with this NIT already exists | 409 |
 
 ---
 

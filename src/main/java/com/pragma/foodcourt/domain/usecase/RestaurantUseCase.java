@@ -2,6 +2,7 @@ package com.pragma.foodcourt.domain.usecase;
 
 import com.pragma.foodcourt.domain.api.IRestaurantServicePort;
 import com.pragma.foodcourt.domain.exception.InvalidOwnerException;
+import com.pragma.foodcourt.domain.exception.NitAlreadyExistsException;
 import com.pragma.foodcourt.domain.model.Restaurant;
 import com.pragma.foodcourt.domain.spi.IRestaurantPersistencePort;
 import com.pragma.foodcourt.domain.spi.IUserValidationPort;
@@ -26,8 +27,15 @@ public class RestaurantUseCase implements IRestaurantServicePort {
     @Override
     public Restaurant createRestaurant(Restaurant restaurant) {
         restaurantValidator.validateNewRestaurant(restaurant);
+        ensureNitIsAvailable(restaurant.getNit());
         ensureOwnerIsValid(restaurant.getOwnerId());
         return restaurantPersistencePort.saveRestaurant(restaurant);
+    }
+
+    private void ensureNitIsAvailable(String nit) {
+        if (restaurantPersistencePort.existsByNit(nit)) {
+            throw new NitAlreadyExistsException();
+        }
     }
 
     private void ensureOwnerIsValid(UUID ownerId) {

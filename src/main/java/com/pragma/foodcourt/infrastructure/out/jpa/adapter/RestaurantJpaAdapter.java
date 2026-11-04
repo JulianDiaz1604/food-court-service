@@ -27,4 +27,9 @@ public class RestaurantJpaAdapter implements IRestaurantPersistencePort {
                 .map(restaurantEntityMapper::toRestaurant)
                 .orElse(null);
     }
+
+    @Override
+    public boolean existsByNit(String nit) {
+        return restaurantRepository.existsByNit(nit);
+    }
 }

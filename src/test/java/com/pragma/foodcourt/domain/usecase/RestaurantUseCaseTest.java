@@ -2,6 +2,7 @@ package com.pragma.foodcourt.domain.usecase;
 
 import com.pragma.foodcourt.domain.exception.InvalidOwnerException;
 import com.pragma.foodcourt.domain.exception.InvalidRestaurantNameException;
+import com.pragma.foodcourt.domain.exception.NitAlreadyExistsException;
 import com.pragma.foodcourt.domain.model.Restaurant;
 import com.pragma.foodcourt.domain.spi.IRestaurantPersistencePort;
 import com.pragma.foodcourt.domain.spi.IUserValidationPort;
@@ -56,6 +57,17 @@ class RestaurantUseCaseTest {
         assertEquals("Tablaito", result.getName());
         verify(userValidationPort).isOwner(OWNER_ID);
         verify(restaurantPersistencePort).saveRestaurant(validRestaurant);
+    }
+
+    @Test
+    @DisplayName("Rejects when the NIT already belongs to another restaurant")
+    void shouldThrowWhenNitAlreadyExists() {
+        when(restaurantPersistencePort.existsByNit("900123456")).thenReturn(true);
+
+        assertThrows(NitAlreadyExistsException.class,
+                () -> restaurantUseCase.createRestaurant(validRestaurant));
+        verify(userValidationPort, never()).isOwner(any(UUID.class));
+        verify(restaurantPersistencePort, never()).saveRestaurant(any());
     }
 
     @Test

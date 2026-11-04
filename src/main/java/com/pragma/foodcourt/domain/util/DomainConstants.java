@@ -6,6 +6,8 @@ public final class DomainConstants {
     }
 
     public static final int PHONE_MAX_LENGTH = 13;
+    public static final int NIT_MIN_LENGTH = 9;
+    public static final int NIT_MAX_LENGTH = 10;
 
     public static final String PHONE_REGEX = "^\\+?[0-9]+$";
     public static final String NAME_WITH_LETTER_REGEX = ".*[a-zA-Z].*";
@@ -16,7 +18,9 @@ public final class DomainConstants {
             "The phone must be numeric, may start with '+', and have at most 13 characters";
     public static final String INVALID_RESTAURANT_NAME_MESSAGE =
             "The restaurant name cannot contain only numbers";
-    public static final String INVALID_NIT_MESSAGE = "The NIT must contain digits only";
+    public static final String INVALID_NIT_MESSAGE =
+            "The NIT must be numeric and contain between 9 and 10 digits";
+    public static final String NIT_ALREADY_EXISTS_MESSAGE = "A restaurant with this NIT already exists";
     public static final String INVALID_OWNER_MESSAGE =
             "The provided owner id does not belong to a registered owner";
 
