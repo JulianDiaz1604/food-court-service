@@ -206,3 +206,33 @@ the requester's identity now comes from the token instead of the request body.
 | `NotRestaurantOwnerException` | This action can only be performed by the owner of the restaurant | 403 |
 | `EmployeeAlreadyExistsException` | An employee with this email or document number already exists | 409 |
 | (unauthenticated request) | Authentication is required | 401 |
+
+---
+
+## HU9 — List restaurants
+
+- **Endpoint:** `GET /api/v1/restaurants?page={page}&size={size}`
+- **Use case:** `RestaurantUseCase.listRestaurants`
+- **Validator:** `PaginationValidator.validate` (pure, reusable across paginated listings)
+- **Persistence port:** `IRestaurantPersistencePort.findAllOrderedByName` → `RestaurantJpaAdapter`
+  (Spring Data `PageRequest` with a case-insensitive ascending sort on `name`).
+
+### Business rules / invariants
+- Returns **all restaurants ordered alphabetically by name**, case-insensitive ascending.
+- **Paginated**: `page` is zero-based (default `0`) and `size` sets the elements per page
+  (default `10`). `page` must be `>= 0` and `size` must be `>= 1`; otherwise the request is rejected.
+- Each item exposes **only** the fields HU9 requires: `name` and `logoUrl`
+  (`RestaurantListItemResponseDto`). The full restaurant record is never leaked here.
+- The response is wrapped in a generic `PageResponseDto` carrying `content`, `page`, `size`,
+  `totalElements`, `totalPages`.
+- Authorization: only the **CLIENT** role may list restaurants
+  (`GET /api/v1/restaurants` → CLIENT rule in `SecurityConfig`).
+- Pagination metadata is kept framework-free in the domain via `PagedResult<T>`, so the use case
+  never depends on Spring Data.
+
+### Exceptions
+| Exception | Message | HTTP |
+|-----------|---------|------|
+| `InvalidPaginationException` | The page number must be zero or greater and the page size must be greater than zero | 400 |
+| (unauthenticated request) | Authentication is required | 401 |
+| (authenticated, non-client role) | (Spring Security forbidden) | 403 |
