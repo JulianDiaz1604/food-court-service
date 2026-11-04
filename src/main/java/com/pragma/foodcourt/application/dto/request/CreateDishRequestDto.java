@@ -18,5 +18,4 @@ public class CreateDishRequestDto {
     private String imageUrl;
     private String category;
     private UUID restaurantId;
-    private UUID ownerId;
 }
