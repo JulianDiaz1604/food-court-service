@@ -55,4 +55,9 @@ public final class DomainConstants {
             "All dishes in an order must belong to the specified restaurant";
     public static final String CLIENT_HAS_ACTIVE_ORDER_MESSAGE =
             "The client already has an order in progress";
+
+    public static final String INVALID_ORDER_STATUS_MESSAGE =
+            "The provided order status is invalid";
+    public static final String EMPLOYEE_NOT_LINKED_MESSAGE =
+            "The employee is not assigned to any restaurant";
 }

@@ -4,16 +4,22 @@ import com.pragma.foodcourt.domain.exception.ClientHasActiveOrderException;
 import com.pragma.foodcourt.domain.exception.DishNotFoundException;
 import com.pragma.foodcourt.domain.exception.DishNotInRestaurantException;
 import com.pragma.foodcourt.domain.exception.EmptyOrderException;
+import com.pragma.foodcourt.domain.exception.EmployeeNotLinkedToRestaurantException;
+import com.pragma.foodcourt.domain.exception.InvalidOrderStatusException;
+import com.pragma.foodcourt.domain.exception.InvalidPaginationException;
 import com.pragma.foodcourt.domain.exception.RestaurantNotFoundException;
 import com.pragma.foodcourt.domain.model.Dish;
 import com.pragma.foodcourt.domain.model.Order;
 import com.pragma.foodcourt.domain.model.OrderItem;
 import com.pragma.foodcourt.domain.model.OrderStatus;
+import com.pragma.foodcourt.domain.model.PagedResult;
 import com.pragma.foodcourt.domain.model.Restaurant;
 import com.pragma.foodcourt.domain.spi.IDishPersistencePort;
+import com.pragma.foodcourt.domain.spi.IEmployeePersistencePort;
 import com.pragma.foodcourt.domain.spi.IOrderPersistencePort;
 import com.pragma.foodcourt.domain.spi.IRestaurantPersistencePort;
 import com.pragma.foodcourt.domain.validation.OrderValidator;
+import com.pragma.foodcourt.domain.validation.PaginationValidator;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -28,7 +34,9 @@ import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -39,6 +47,7 @@ class OrderUseCaseTest {
     private static final UUID CLIENT_ID = UUID.randomUUID();
     private static final UUID RESTAURANT_ID = UUID.randomUUID();
     private static final UUID DISH_ID = UUID.randomUUID();
+    private static final UUID EMPLOYEE_ID = UUID.randomUUID();
 
     @Mock
     private IOrderPersistencePort orderPersistencePort;
@@ -49,6 +58,9 @@ class OrderUseCaseTest {
     @Mock
     private IDishPersistencePort dishPersistencePort;
 
+    @Mock
+    private IEmployeePersistencePort employeePersistencePort;
+
     private OrderUseCase orderUseCase;
     private Order validOrder;
     private Restaurant restaurant;
@@ -57,7 +69,8 @@ class OrderUseCaseTest {
     @BeforeEach
     void setUp() {
         orderUseCase = new OrderUseCase(orderPersistencePort, restaurantPersistencePort,
-                dishPersistencePort, new OrderValidator());
+                dishPersistencePort, employeePersistencePort, new OrderValidator(),
+                new PaginationValidator());
         validOrder = new Order(null, null, RESTAURANT_ID, null,
                 new ArrayList<>(List.of(new OrderItem(DISH_ID, 2))));
         restaurant = new Restaurant(RESTAURANT_ID, "Tablaito", "900123456",
@@ -162,5 +175,50 @@ class OrderUseCaseTest {
         verify(dishPersistencePort).findDishById(DISH_ID);
         verify(dishPersistencePort).findDishById(secondDishId);
         verify(orderPersistencePort).saveOrder(any(Order.class));
+    }
+
+    @Test
+    @DisplayName("Lists the orders of the employee's restaurant filtered by status and paginated")
+    void shouldListOrdersByStatusForEmployeeRestaurant() {
+        PagedResult<Order> expected = new PagedResult<>(List.of(), 0, 10, 0L, 0);
+        when(employeePersistencePort.findRestaurantIdByEmployee(EMPLOYEE_ID)).thenReturn(RESTAURANT_ID);
+        when(orderPersistencePort.findOrdersByRestaurantAndStatus(
+                RESTAURANT_ID, OrderStatus.PENDING, 0, 10)).thenReturn(expected);
+
+        PagedResult<Order> result = orderUseCase.listOrdersByStatus(EMPLOYEE_ID, "PENDING", 0, 10);
+
+        assertSame(expected, result);
+        verify(orderPersistencePort).findOrdersByRestaurantAndStatus(
+                RESTAURANT_ID, OrderStatus.PENDING, 0, 10);
+    }
+
+    @Test
+    @DisplayName("Rejects listing orders with an unknown status value")
+    void shouldThrowWhenStatusIsInvalid() {
+        assertThrows(InvalidOrderStatusException.class,
+                () -> orderUseCase.listOrdersByStatus(EMPLOYEE_ID, "NOT_A_STATUS", 0, 10));
+        verify(orderPersistencePort, never())
+                .findOrdersByRestaurantAndStatus(any(), any(), anyInt(), anyInt());
+    }
+
+    @Test
+    @DisplayName("Rejects listing orders when the employee is not assigned to any restaurant")
+    void shouldThrowWhenEmployeeHasNoRestaurant() {
+        when(employeePersistencePort.findRestaurantIdByEmployee(EMPLOYEE_ID)).thenReturn(null);
+
+        assertThrows(EmployeeNotLinkedToRestaurantException.class,
+                () -> orderUseCase.listOrdersByStatus(EMPLOYEE_ID, "PENDING", 0, 10));
+        verify(orderPersistencePort, never())
+                .findOrdersByRestaurantAndStatus(any(), any(), anyInt(), anyInt());
+    }
+
+    @Test
+    @DisplayName("Rejects listing orders with invalid pagination before resolving the restaurant")
+    void shouldThrowWhenPaginationIsInvalid() {
+        assertThrows(InvalidPaginationException.class,
+                () -> orderUseCase.listOrdersByStatus(EMPLOYEE_ID, "PENDING", -1, 10));
+        verify(employeePersistencePort, never()).findRestaurantIdByEmployee(any());
+        verify(orderPersistencePort, never())
+                .findOrdersByRestaurantAndStatus(any(), any(), anyInt(), anyInt());
     }
 }

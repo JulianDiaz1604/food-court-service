@@ -2,6 +2,7 @@ package com.pragma.foodcourt.infrastructure.input.rest;
 
 import com.pragma.foodcourt.application.dto.request.CreateOrderRequestDto;
 import com.pragma.foodcourt.application.dto.response.OrderResponseDto;
+import com.pragma.foodcourt.application.dto.response.PageResponseDto;
 import com.pragma.foodcourt.application.handler.IOrderHandler;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -11,9 +12,11 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.UUID;
@@ -41,5 +44,24 @@ public class OrderRestController {
             @RequestBody CreateOrderRequestDto request) {
         return new ResponseEntity<>(
                 orderHandler.placeOrder(request, UUID.fromString(clientId)), HttpStatus.CREATED);
+    }
+
+    @Operation(summary = "List the orders of the employee's restaurant filtered by status, paginated "
+            + "(employee only; the employee is taken from the authenticated token)")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Page of orders for the employee's restaurant"),
+            @ApiResponse(responseCode = "400", description = "Invalid status or pagination parameters"),
+            @ApiResponse(responseCode = "401", description = "Authentication is required"),
+            @ApiResponse(responseCode = "403", description = "Requester is not an employee"),
+            @ApiResponse(responseCode = "404", description = "The employee is not assigned to any restaurant")
+    })
+    @GetMapping
+    public ResponseEntity<PageResponseDto<OrderResponseDto>> listOrdersByStatus(
+            @AuthenticationPrincipal String employeeId,
+            @RequestParam String status,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        return ResponseEntity.ok(
+                orderHandler.listOrdersByStatus(UUID.fromString(employeeId), status, page, size));
     }
 }
