@@ -46,6 +46,16 @@ public class DishUseCase implements IDishServicePort {
         return dishPersistencePort.saveDish(dish);
     }
 
+    @Override
+    public Dish setDishStatus(UUID dishId, Boolean active, UUID ownerId) {
+        dishValidator.validateDishStatus(active);
+        Dish dish = findDish(dishId);
+        Restaurant restaurant = findRestaurant(dish.getRestaurantId());
+        ensureRequesterOwnsRestaurant(restaurant, ownerId);
+        dish.setActive(active);
+        return dishPersistencePort.saveDish(dish);
+    }
+
     private Dish findDish(UUID dishId) {
         Dish dish = dishPersistencePort.findDishById(dishId);
         if (dish == null) {

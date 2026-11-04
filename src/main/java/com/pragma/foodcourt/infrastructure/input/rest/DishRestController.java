@@ -2,6 +2,7 @@ package com.pragma.foodcourt.infrastructure.input.rest;
 
 import com.pragma.foodcourt.application.dto.request.CreateDishRequestDto;
 import com.pragma.foodcourt.application.dto.request.UpdateDishRequestDto;
+import com.pragma.foodcourt.application.dto.request.UpdateDishStatusRequestDto;
 import com.pragma.foodcourt.application.dto.response.DishResponseDto;
 import com.pragma.foodcourt.application.handler.IDishHandler;
 import io.swagger.v3.oas.annotations.Operation;
@@ -60,5 +61,22 @@ public class DishRestController {
             @RequestBody UpdateDishRequestDto request) {
         return new ResponseEntity<>(
                 dishHandler.updateDish(dishId, request, UUID.fromString(ownerId)), HttpStatus.OK);
+    }
+
+    @Operation(summary = "Enable or disable a dish (owner only; owner taken from the token)")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Dish status updated"),
+            @ApiResponse(responseCode = "400", description = "The active flag is required"),
+            @ApiResponse(responseCode = "401", description = "Authentication is required"),
+            @ApiResponse(responseCode = "403", description = "Requester is not the owner of the restaurant"),
+            @ApiResponse(responseCode = "404", description = "Dish does not exist")
+    })
+    @PatchMapping("/{dishId}/status")
+    public ResponseEntity<DishResponseDto> setDishStatus(
+            @PathVariable UUID dishId,
+            @AuthenticationPrincipal String ownerId,
+            @RequestBody UpdateDishStatusRequestDto request) {
+        return new ResponseEntity<>(
+                dishHandler.setDishStatus(dishId, request, UUID.fromString(ownerId)), HttpStatus.OK);
     }
 }

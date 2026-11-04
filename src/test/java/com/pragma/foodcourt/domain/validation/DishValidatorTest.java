@@ -132,4 +132,27 @@ class DishValidatorTest {
                     () -> validator.validateDishUpdate(-5, "New description"));
         }
     }
+
+    @Nested
+    @DisplayName("validateDishStatus")
+    class ValidateDishStatus {
+
+        @Test
+        @DisplayName("Accepts an enable request")
+        void shouldAcceptEnable() {
+            assertDoesNotThrow(() -> validator.validateDishStatus(Boolean.TRUE));
+        }
+
+        @Test
+        @DisplayName("Accepts a disable request")
+        void shouldAcceptDisable() {
+            assertDoesNotThrow(() -> validator.validateDishStatus(Boolean.FALSE));
+        }
+
+        @Test
+        @DisplayName("Rejects a null status flag")
+        void shouldThrowWhenStatusIsNull() {
+            assertThrows(RequiredFieldException.class, () -> validator.validateDishStatus(null));
+        }
+    }
 }

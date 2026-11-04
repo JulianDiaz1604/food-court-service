@@ -2,6 +2,7 @@ package com.pragma.foodcourt.application.handler.impl;
 
 import com.pragma.foodcourt.application.dto.request.CreateDishRequestDto;
 import com.pragma.foodcourt.application.dto.request.UpdateDishRequestDto;
+import com.pragma.foodcourt.application.dto.request.UpdateDishStatusRequestDto;
 import com.pragma.foodcourt.application.dto.response.DishResponseDto;
 import com.pragma.foodcourt.application.handler.IDishHandler;
 import com.pragma.foodcourt.application.mapper.IDishRequestMapper;
@@ -33,6 +34,12 @@ public class DishHandler implements IDishHandler {
     public DishResponseDto updateDish(UUID dishId, UpdateDishRequestDto request, UUID ownerId) {
         Dish updatedDish = dishServicePort.updateDish(
                 dishId, request.getPrice(), request.getDescription(), ownerId);
+        return dishResponseMapper.toResponse(updatedDish);
+    }
+
+    @Override
+    public DishResponseDto setDishStatus(UUID dishId, UpdateDishStatusRequestDto request, UUID ownerId) {
+        Dish updatedDish = dishServicePort.setDishStatus(dishId, request.getActive(), ownerId);
         return dishResponseMapper.toResponse(updatedDish);
     }
 }
