@@ -1,10 +1,12 @@
 package com.pragma.foodcourt.domain.validation;
 
 import com.pragma.foodcourt.domain.exception.EmptyOrderException;
+import com.pragma.foodcourt.domain.exception.InvalidOrderStatusException;
 import com.pragma.foodcourt.domain.exception.InvalidQuantityException;
 import com.pragma.foodcourt.domain.exception.RequiredFieldException;
 import com.pragma.foodcourt.domain.model.Order;
 import com.pragma.foodcourt.domain.model.OrderItem;
+import com.pragma.foodcourt.domain.model.OrderStatus;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -14,6 +16,7 @@ import java.util.List;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 class OrderValidatorTest {
@@ -86,5 +89,24 @@ class OrderValidatorTest {
         Order order = orderWith(List.of(new OrderItem(DISH_ID, 0)));
 
         assertThrows(InvalidQuantityException.class, () -> orderValidator.validateNewOrder(order));
+    }
+
+    @Test
+    @DisplayName("Parses a valid status name ignoring case and surrounding spaces")
+    void shouldParseValidStatusIgnoringCaseAndSpaces() {
+        assertEquals(OrderStatus.IN_PREPARATION, orderValidator.parseStatus("  in_preparation  "));
+    }
+
+    @Test
+    @DisplayName("Rejects a null or blank status")
+    void shouldThrowWhenStatusIsBlank() {
+        assertThrows(InvalidOrderStatusException.class, () -> orderValidator.parseStatus("   "));
+        assertThrows(InvalidOrderStatusException.class, () -> orderValidator.parseStatus(null));
+    }
+
+    @Test
+    @DisplayName("Rejects a status that is not part of the lifecycle")
+    void shouldThrowWhenStatusIsUnknown() {
+        assertThrows(InvalidOrderStatusException.class, () -> orderValidator.parseStatus("SHIPPED"));
     }
 }

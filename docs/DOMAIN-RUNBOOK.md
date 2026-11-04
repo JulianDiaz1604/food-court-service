@@ -316,3 +316,41 @@ the requester's identity now comes from the token instead of the request body.
 | `ClientHasActiveOrderException` | The client already has an order in progress | 409 |
 | (unauthenticated request) | Authentication is required | 401 |
 | (authenticated, non-client role) | (Spring Security forbidden) | 403 |
+
+## HU12 — List orders by status
+
+- **Role:** Employee
+- **Endpoint:** `GET /api/v1/orders?status={status}&page={page}&size={size}`
+- **Use case:** `OrderUseCase.listOrdersByStatus`
+- **Validators:** `PaginationValidator.validate` (page/size) and `OrderValidator.parseStatus`
+  (status string → `OrderStatus`, case-insensitive, trimmed).
+- **Persistence ports:**
+  - `IEmployeePersistencePort.findRestaurantIdByEmployee` → `EmployeeRestaurantJpaAdapter`
+    (derived query `findByEmployeeId` on the `employee_restaurant` link created in HU6).
+  - `IOrderPersistencePort.findOrdersByRestaurantAndStatus` → `OrderJpaAdapter`
+    (derived query `findByRestaurantIdAndStatus` with Spring Data `Pageable`).
+
+### Business rules / invariants
+- The service returns the orders of a restaurant **filtered by status** (acceptance criterion 1):
+  the `status` query parameter is **required** and must match an `OrderStatus`
+  (`PENDING`, `IN_PREPARATION`, `READY`, `DELIVERED`, `CANCELLED`).
+- The listing is **paginated** and the page size is caller-specified (criterion 2): `page`
+  (zero-based, default `0`) and `size` (default `10`) are validated by `PaginationValidator`.
+- Every returned order exposes **all its fields** (criterion 3): id, client id, restaurant id,
+  status and the list of items (`OrderResponseDto`).
+- An employee can only list the orders of the **restaurant they belong to** (criterion 4): the
+  restaurant is resolved from the authenticated employee's `employee_restaurant` link, never taken
+  from the request. The `restaurantId` is never a client-supplied parameter.
+- The **employee** is taken from the JWT (`@AuthenticationPrincipal`), never from the body/query.
+- Authorization: only the **EMPLOYEE** role may list orders
+  (`GET /api/v1/orders` → EMPLOYEE rule in `SecurityConfig`).
+- Read-only operation: the handler runs in a `@Transactional(readOnly = true)` boundary.
+
+### Exceptions
+| Exception | Message | HTTP |
+|-----------|---------|------|
+| `InvalidOrderStatusException` | The provided order status is invalid | 400 |
+| `InvalidPaginationException` | The page number must be zero or greater and the page size must be greater than zero | 400 |
+| `EmployeeNotLinkedToRestaurantException` | The employee is not assigned to any restaurant | 404 |
+| (unauthenticated request) | Authentication is required | 401 |
+| (authenticated, non-employee role) | (Spring Security forbidden) | 403 |
