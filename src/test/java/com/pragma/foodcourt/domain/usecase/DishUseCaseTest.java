@@ -1,15 +1,18 @@
 package com.pragma.foodcourt.domain.usecase;
 
 import com.pragma.foodcourt.domain.exception.DishNotFoundException;
+import com.pragma.foodcourt.domain.exception.InvalidPaginationException;
 import com.pragma.foodcourt.domain.exception.InvalidPriceException;
 import com.pragma.foodcourt.domain.exception.NotRestaurantOwnerException;
 import com.pragma.foodcourt.domain.exception.RequiredFieldException;
 import com.pragma.foodcourt.domain.exception.RestaurantNotFoundException;
 import com.pragma.foodcourt.domain.model.Dish;
+import com.pragma.foodcourt.domain.model.PagedResult;
 import com.pragma.foodcourt.domain.model.Restaurant;
 import com.pragma.foodcourt.domain.spi.IDishPersistencePort;
 import com.pragma.foodcourt.domain.spi.IRestaurantPersistencePort;
 import com.pragma.foodcourt.domain.validation.DishValidator;
+import com.pragma.foodcourt.domain.validation.PaginationValidator;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -18,6 +21,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.util.List;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -25,6 +29,9 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -47,7 +54,8 @@ class DishUseCaseTest {
 
     @BeforeEach
     void setUp() {
-        dishUseCase = new DishUseCase(dishPersistencePort, restaurantPersistencePort, new DishValidator());
+        dishUseCase = new DishUseCase(dishPersistencePort, restaurantPersistencePort,
+                new DishValidator(), new PaginationValidator());
         validDish = new Dish(null, "Bandeja Paisa", 25000,
                 "Traditional dish", "http://img/bandeja.png", "Main course", RESTAURANT_ID, false);
         restaurant = new Restaurant(RESTAURANT_ID, "Tablaito", "900123456",
@@ -226,5 +234,54 @@ class DishUseCaseTest {
                 () -> dishUseCase.setDishStatus(dishId, null, OWNER_ID));
         verify(dishPersistencePort, never()).findDishById(any());
         verify(dishPersistencePort, never()).saveDish(any());
+    }
+
+    @Test
+    @DisplayName("Returns the restaurant's active dishes with no category filter when category is blank")
+    void shouldListActiveDishesWithoutCategoryFilterWhenCategoryIsBlank() {
+        Dish dish = new Dish(UUID.randomUUID(), "Bandeja Paisa", 25000,
+                "Traditional dish", "http://img/bandeja.png", "Main course", RESTAURANT_ID, true);
+        PagedResult<Dish> page = new PagedResult<>(List.of(dish), 0, 10, 1L, 1);
+        when(restaurantPersistencePort.findRestaurantById(RESTAURANT_ID)).thenReturn(restaurant);
+        when(dishPersistencePort.findActiveDishesByRestaurant(RESTAURANT_ID, null, 0, 10)).thenReturn(page);
+
+        PagedResult<Dish> result = dishUseCase.listDishesByRestaurant(RESTAURANT_ID, "   ", 0, 10);
+
+        assertEquals(1, result.getContent().size());
+        verify(dishPersistencePort).findActiveDishesByRestaurant(RESTAURANT_ID, null, 0, 10);
+    }
+
+    @Test
+    @DisplayName("Forwards the trimmed category to persistence when a category filter is provided")
+    void shouldListActiveDishesFilteredByCategory() {
+        PagedResult<Dish> page = new PagedResult<>(List.of(), 1, 5, 0L, 0);
+        when(restaurantPersistencePort.findRestaurantById(RESTAURANT_ID)).thenReturn(restaurant);
+        when(dishPersistencePort.findActiveDishesByRestaurant(RESTAURANT_ID, "Main course", 1, 5))
+                .thenReturn(page);
+
+        dishUseCase.listDishesByRestaurant(RESTAURANT_ID, "  Main course  ", 1, 5);
+
+        verify(dishPersistencePort).findActiveDishesByRestaurant(RESTAURANT_ID, "Main course", 1, 5);
+    }
+
+    @Test
+    @DisplayName("Rejects listing when the restaurant does not exist and never touches dish persistence")
+    void shouldThrowWhenRestaurantNotFoundOnListing() {
+        when(restaurantPersistencePort.findRestaurantById(RESTAURANT_ID)).thenReturn(null);
+
+        assertThrows(RestaurantNotFoundException.class,
+                () -> dishUseCase.listDishesByRestaurant(RESTAURANT_ID, null, 0, 10));
+        verify(dishPersistencePort, never())
+                .findActiveDishesByRestaurant(any(), any(), anyInt(), anyInt());
+    }
+
+    @Test
+    @DisplayName("Rejects listing with invalid pagination and never touches persistence")
+    void shouldThrowWhenPaginationIsInvalidOnListing() {
+        assertThrows(InvalidPaginationException.class,
+                () -> dishUseCase.listDishesByRestaurant(RESTAURANT_ID, null, 0, 0));
+        verify(restaurantPersistencePort, never()).findRestaurantById(any());
+        verify(dishPersistencePort, never())
+                .findActiveDishesByRestaurant(any(), isNull(), eq(0), eq(0));
     }
 }

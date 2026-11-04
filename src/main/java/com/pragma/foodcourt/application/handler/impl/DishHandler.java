@@ -3,12 +3,15 @@ package com.pragma.foodcourt.application.handler.impl;
 import com.pragma.foodcourt.application.dto.request.CreateDishRequestDto;
 import com.pragma.foodcourt.application.dto.request.UpdateDishRequestDto;
 import com.pragma.foodcourt.application.dto.request.UpdateDishStatusRequestDto;
+import com.pragma.foodcourt.application.dto.response.DishListItemResponseDto;
 import com.pragma.foodcourt.application.dto.response.DishResponseDto;
+import com.pragma.foodcourt.application.dto.response.PageResponseDto;
 import com.pragma.foodcourt.application.handler.IDishHandler;
 import com.pragma.foodcourt.application.mapper.IDishRequestMapper;
 import com.pragma.foodcourt.application.mapper.IDishResponseMapper;
 import com.pragma.foodcourt.domain.api.IDishServicePort;
 import com.pragma.foodcourt.domain.model.Dish;
+import com.pragma.foodcourt.domain.model.PagedResult;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -41,5 +44,19 @@ public class DishHandler implements IDishHandler {
     public DishResponseDto setDishStatus(UUID dishId, UpdateDishStatusRequestDto request, UUID ownerId) {
         Dish updatedDish = dishServicePort.setDishStatus(dishId, request.getActive(), ownerId);
         return dishResponseMapper.toResponse(updatedDish);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public PageResponseDto<DishListItemResponseDto> listDishesByRestaurant(
+            UUID restaurantId, String category, int page, int size) {
+        PagedResult<Dish> result =
+                dishServicePort.listDishesByRestaurant(restaurantId, category, page, size);
+        return new PageResponseDto<>(
+                dishResponseMapper.toListItems(result.getContent()),
+                result.getPage(),
+                result.getSize(),
+                result.getTotalElements(),
+                result.getTotalPages());
     }
 }

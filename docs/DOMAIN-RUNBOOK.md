@@ -236,3 +236,39 @@ the requester's identity now comes from the token instead of the request body.
 | `InvalidPaginationException` | The page number must be zero or greater and the page size must be greater than zero | 400 |
 | (unauthenticated request) | Authentication is required | 401 |
 | (authenticated, non-client role) | (Spring Security forbidden) | 403 |
+
+---
+
+## HU10 — List dishes of a restaurant
+
+- **Endpoint:** `GET /api/v1/dishes?restaurantId={id}&category={category}&page={page}&size={size}`
+- **Use case:** `DishUseCase.listDishesByRestaurant`
+- **Validator:** `PaginationValidator.validate` (same pure validator reused from HU9).
+- **Persistence port:** `IDishPersistencePort.findActiveDishesByRestaurant` → `DishJpaAdapter`
+  (Spring Data `PageRequest` with a case-insensitive ascending sort on `name`; derived queries
+  `findByRestaurantIdAndActiveTrue` / `findByRestaurantIdAndCategoryIgnoreCaseAndActiveTrue`).
+
+### Business rules / invariants
+- Lists the dishes of a **single restaurant** (`restaurantId` is required). The restaurant must
+  exist; otherwise the request is rejected with `RestaurantNotFoundException` (404).
+- Only **active dishes** are returned: a disabled dish (HU7) is removed from the client menu, so it
+  never appears in this listing.
+- **Optional category filter**: when `category` is omitted/blank, all active dishes are returned;
+  when present it is trimmed and matched **case-insensitively**.
+- **Paginated**: `page` is zero-based (default `0`) and `size` sets the elements per page
+  (default `10`). `page` must be `>= 0` and `size` must be `>= 1`; otherwise rejected.
+- Dishes are ordered alphabetically by `name`, case-insensitive ascending.
+- Each item exposes **only** the client-facing menu fields (`name`, `price`, `description`,
+  `imageUrl`, `category`) via `DishListItemResponseDto`; internal `id`, `restaurantId` and the
+  `active` flag are never leaked. Response wrapped in the generic `PageResponseDto`.
+- Authorization: only the **CLIENT** role may list dishes
+  (`GET /api/v1/dishes` → CLIENT rule in `SecurityConfig`).
+- Pagination stays framework-free in the domain via `PagedResult<T>`.
+
+### Exceptions
+| Exception | Message | HTTP |
+|-----------|---------|------|
+| `InvalidPaginationException` | The page number must be zero or greater and the page size must be greater than zero | 400 |
+| `RestaurantNotFoundException` | The restaurant does not exist | 404 |
+| (unauthenticated request) | Authentication is required | 401 |
+| (authenticated, non-client role) | (Spring Security forbidden) | 403 |
