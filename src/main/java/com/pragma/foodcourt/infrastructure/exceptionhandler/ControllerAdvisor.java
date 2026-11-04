@@ -1,5 +1,6 @@
 package com.pragma.foodcourt.infrastructure.exceptionhandler;
 
+import com.pragma.foodcourt.domain.exception.ConflictException;
 import com.pragma.foodcourt.domain.exception.DishNotFoundException;
 import com.pragma.foodcourt.domain.exception.DomainException;
 import com.pragma.foodcourt.domain.exception.NotRestaurantOwnerException;
@@ -36,6 +37,12 @@ public class ControllerAdvisor {
     public ResponseEntity<Map<String, String>> handleNotRestaurantOwnerException(
             NotRestaurantOwnerException exception) {
         return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                .body(Collections.singletonMap(MESSAGE, exception.getMessage()));
+    }
+
+    @ExceptionHandler(ConflictException.class)
+    public ResponseEntity<Map<String, String>> handleConflictException(ConflictException exception) {
+        return ResponseEntity.status(HttpStatus.CONFLICT)
                 .body(Collections.singletonMap(MESSAGE, exception.getMessage()));
     }
 

@@ -68,6 +68,27 @@ class RestaurantValidatorTest {
     }
 
     @Test
+    @DisplayName("Rejects a NIT shorter than 9 digits")
+    void shouldThrowWhenNitIsTooShort() {
+        validRestaurant.setNit("12345678");
+        assertThrows(InvalidNitException.class, () -> validator.validateNewRestaurant(validRestaurant));
+    }
+
+    @Test
+    @DisplayName("Rejects a NIT longer than 10 digits")
+    void shouldThrowWhenNitIsTooLong() {
+        validRestaurant.setNit("12345678901");
+        assertThrows(InvalidNitException.class, () -> validator.validateNewRestaurant(validRestaurant));
+    }
+
+    @Test
+    @DisplayName("Accepts a 10-digit NIT")
+    void shouldAcceptTenDigitNit() {
+        validRestaurant.setNit("9001234567");
+        assertDoesNotThrow(() -> validator.validateNewRestaurant(validRestaurant));
+    }
+
+    @Test
     @DisplayName("Rejects a phone longer than 13 characters")
     void shouldThrowWhenPhoneTooLong() {
         validRestaurant.setPhone("+5730056983255");
