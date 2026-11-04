@@ -45,4 +45,14 @@ public final class DomainConstants {
 
     public static final String INVALID_PAGINATION_MESSAGE =
             "The page number must be zero or greater and the page size must be greater than zero";
+
+    public static final int ORDER_QUANTITY_MINIMUM = 0;
+
+    public static final String ORDER_EMPTY_MESSAGE = "An order must contain at least one dish";
+    public static final String INVALID_QUANTITY_MESSAGE =
+            "Each dish quantity must be greater than zero";
+    public static final String DISH_NOT_IN_RESTAURANT_MESSAGE =
+            "All dishes in an order must belong to the specified restaurant";
+    public static final String CLIENT_HAS_ACTIVE_ORDER_MESSAGE =
+            "The client already has an order in progress";
 }
