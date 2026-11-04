@@ -39,4 +39,10 @@ public final class DomainConstants {
     public static final String INVALID_DOCUMENT_MESSAGE = "The document number must contain digits only";
     public static final String EMPLOYEE_ALREADY_EXISTS_MESSAGE =
             "An employee with this email or document number already exists";
+
+    public static final int MIN_PAGE_NUMBER = 0;
+    public static final int MIN_PAGE_SIZE = 1;
+
+    public static final String INVALID_PAGINATION_MESSAGE =
+            "The page number must be zero or greater and the page size must be greater than zero";
 }

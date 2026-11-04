@@ -1,5 +1,6 @@
 package com.pragma.foodcourt.domain.spi;
 
+import com.pragma.foodcourt.domain.model.PagedResult;
 import com.pragma.foodcourt.domain.model.Restaurant;
 
 import java.util.UUID;
@@ -10,4 +11,6 @@ public interface IRestaurantPersistencePort {
     Restaurant findRestaurantById(UUID id);
 
     boolean existsByNit(String nit);
+
+    PagedResult<Restaurant> findAllOrderedByName(int page, int size);
 }

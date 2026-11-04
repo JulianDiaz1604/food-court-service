@@ -13,6 +13,7 @@ import com.pragma.foodcourt.domain.usecase.EmployeeUseCase;
 import com.pragma.foodcourt.domain.usecase.RestaurantUseCase;
 import com.pragma.foodcourt.domain.validation.DishValidator;
 import com.pragma.foodcourt.domain.validation.EmployeeValidator;
+import com.pragma.foodcourt.domain.validation.PaginationValidator;
 import com.pragma.foodcourt.domain.validation.RestaurantValidator;
 import com.pragma.foodcourt.infrastructure.out.client.AuthorizationForwardingInterceptor;
 import com.pragma.foodcourt.infrastructure.out.client.UserCreationRestClientAdapter;
@@ -91,8 +92,14 @@ public class BeanConfiguration {
     }
 
     @Bean
+    public PaginationValidator paginationValidator() {
+        return new PaginationValidator();
+    }
+
+    @Bean
     public IRestaurantServicePort restaurantServicePort() {
-        return new RestaurantUseCase(restaurantPersistencePort(), userValidationPort(), restaurantValidator());
+        return new RestaurantUseCase(restaurantPersistencePort(), userValidationPort(),
+                restaurantValidator(), paginationValidator());
     }
 
     @Bean

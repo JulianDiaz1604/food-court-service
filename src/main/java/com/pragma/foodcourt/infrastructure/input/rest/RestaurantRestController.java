@@ -1,6 +1,8 @@
 package com.pragma.foodcourt.infrastructure.input.rest;
 
 import com.pragma.foodcourt.application.dto.request.CreateRestaurantRequestDto;
+import com.pragma.foodcourt.application.dto.response.PageResponseDto;
+import com.pragma.foodcourt.application.dto.response.RestaurantListItemResponseDto;
 import com.pragma.foodcourt.application.dto.response.RestaurantResponseDto;
 import com.pragma.foodcourt.application.handler.IRestaurantHandler;
 import io.swagger.v3.oas.annotations.Operation;
@@ -10,9 +12,11 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
@@ -34,5 +38,19 @@ public class RestaurantRestController {
     public ResponseEntity<RestaurantResponseDto> createRestaurant(
             @RequestBody CreateRestaurantRequestDto request) {
         return new ResponseEntity<>(restaurantHandler.createRestaurant(request), HttpStatus.CREATED);
+    }
+
+    @Operation(summary = "List restaurants ordered alphabetically, paginated (client only)")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Page of restaurants (name and logo URL)"),
+            @ApiResponse(responseCode = "400", description = "Invalid pagination parameters"),
+            @ApiResponse(responseCode = "401", description = "Authentication is required"),
+            @ApiResponse(responseCode = "403", description = "Requester is not a client")
+    })
+    @GetMapping
+    public ResponseEntity<PageResponseDto<RestaurantListItemResponseDto>> listRestaurants(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        return ResponseEntity.ok(restaurantHandler.listRestaurants(page, size));
     }
 }
