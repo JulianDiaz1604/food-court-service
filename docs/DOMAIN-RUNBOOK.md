@@ -136,6 +136,36 @@ the requester's identity now comes from the token instead of the request body.
 
 ---
 
+## HU7 — Enable / disable dish
+
+- **Endpoint:** `PATCH /api/v1/dishes/{dishId}/status`
+- **Use case:** `DishUseCase.setDishStatus`
+- **Validator:** `DishValidator.validateDishStatus`
+- **Ports:** `IDishPersistencePort.findDishById` (loads the dish) and
+  `IRestaurantPersistencePort.findRestaurantById` (loads its restaurant to check ownership).
+
+### Business rules / invariants
+- **Only the `active` flag is modified.** `name`, `price`, `description`, `imageUrl`, `category`
+  and `restaurantId` are never changed by this operation.
+- The `active` flag is **required** in the payload (`true` to enable, `false` to disable); a missing
+  flag is rejected.
+- The `dishId` must reference an existing dish; otherwise the operation is rejected.
+- A dish can only be enabled/disabled by the **owner of its restaurant** — the requester `ownerId`
+  (taken from the JWT) must match the restaurant's `ownerId`. This enforces both acceptance
+  criteria: only the owner may toggle a dish, and dishes of other restaurants cannot be touched.
+- The JWT authorization gate (role **OWNER**) is applied in `SecurityConfig` via the existing
+  `PATCH /api/v1/dishes/**` → OWNER rule; no new security rule is required.
+
+### Exceptions
+| Exception | Message | HTTP |
+|-----------|---------|------|
+| `RequiredFieldException` | All fields are required | 400 |
+| `DishNotFoundException` | The dish does not exist | 404 |
+| `NotRestaurantOwnerException` | This action can only be performed by the owner of the restaurant | 403 |
+| (unauthenticated request) | Authentication is required | 401 |
+
+---
+
 ## HU6 — Create employee
 
 - **Endpoint:** `POST /api/v1/restaurants/{restaurantId}/employees`

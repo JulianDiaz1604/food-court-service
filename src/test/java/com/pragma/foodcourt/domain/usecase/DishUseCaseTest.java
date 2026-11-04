@@ -21,6 +21,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
@@ -152,6 +153,77 @@ class DishUseCaseTest {
 
         assertThrows(RequiredFieldException.class,
                 () -> dishUseCase.updateDish(dishId, 30000, "  ", OWNER_ID));
+        verify(dishPersistencePort, never()).findDishById(any());
+        verify(dishPersistencePort, never()).saveDish(any());
+    }
+
+    @Test
+    @DisplayName("Disables a dish when the owner toggles its status off in their restaurant")
+    void shouldDisableDishWhenOwnerIsValid() {
+        UUID dishId = UUID.randomUUID();
+        Dish existingDish = new Dish(dishId, "Bandeja Paisa", 25000,
+                "Traditional dish", "http://img/bandeja.png", "Main course", RESTAURANT_ID, true);
+        when(dishPersistencePort.findDishById(dishId)).thenReturn(existingDish);
+        when(restaurantPersistencePort.findRestaurantById(RESTAURANT_ID)).thenReturn(restaurant);
+        when(dishPersistencePort.saveDish(any(Dish.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        dishUseCase.setDishStatus(dishId, false, OWNER_ID);
+
+        ArgumentCaptor<Dish> captor = ArgumentCaptor.forClass(Dish.class);
+        verify(dishPersistencePort).saveDish(captor.capture());
+        assertFalse(captor.getValue().isActive());
+    }
+
+    @Test
+    @DisplayName("Enables a dish when the owner toggles its status on in their restaurant")
+    void shouldEnableDishWhenOwnerIsValid() {
+        UUID dishId = UUID.randomUUID();
+        Dish existingDish = new Dish(dishId, "Bandeja Paisa", 25000,
+                "Traditional dish", "http://img/bandeja.png", "Main course", RESTAURANT_ID, false);
+        when(dishPersistencePort.findDishById(dishId)).thenReturn(existingDish);
+        when(restaurantPersistencePort.findRestaurantById(RESTAURANT_ID)).thenReturn(restaurant);
+        when(dishPersistencePort.saveDish(any(Dish.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        dishUseCase.setDishStatus(dishId, true, OWNER_ID);
+
+        ArgumentCaptor<Dish> captor = ArgumentCaptor.forClass(Dish.class);
+        verify(dishPersistencePort).saveDish(captor.capture());
+        assertTrue(captor.getValue().isActive());
+    }
+
+    @Test
+    @DisplayName("Rejects a status change when the dish does not exist")
+    void shouldThrowWhenDishNotFoundOnStatusChange() {
+        UUID dishId = UUID.randomUUID();
+        when(dishPersistencePort.findDishById(dishId)).thenReturn(null);
+
+        assertThrows(DishNotFoundException.class,
+                () -> dishUseCase.setDishStatus(dishId, false, OWNER_ID));
+        verify(dishPersistencePort, never()).saveDish(any());
+    }
+
+    @Test
+    @DisplayName("Rejects a status change when the requester is not the owner of the restaurant")
+    void shouldThrowWhenRequesterIsNotOwnerOnStatusChange() {
+        UUID dishId = UUID.randomUUID();
+        UUID anotherOwnerId = UUID.randomUUID();
+        Dish existingDish = new Dish(dishId, "Bandeja Paisa", 25000,
+                "Traditional dish", "http://img/bandeja.png", "Main course", RESTAURANT_ID, true);
+        when(dishPersistencePort.findDishById(dishId)).thenReturn(existingDish);
+        when(restaurantPersistencePort.findRestaurantById(RESTAURANT_ID)).thenReturn(restaurant);
+
+        assertThrows(NotRestaurantOwnerException.class,
+                () -> dishUseCase.setDishStatus(dishId, false, anotherOwnerId));
+        verify(dishPersistencePort, never()).saveDish(any());
+    }
+
+    @Test
+    @DisplayName("Does not touch persistence when the status flag is missing")
+    void shouldNotReachPersistenceWhenStatusValidationFails() {
+        UUID dishId = UUID.randomUUID();
+
+        assertThrows(RequiredFieldException.class,
+                () -> dishUseCase.setDishStatus(dishId, null, OWNER_ID));
         verify(dishPersistencePort, never()).findDishById(any());
         verify(dishPersistencePort, never()).saveDish(any());
     }

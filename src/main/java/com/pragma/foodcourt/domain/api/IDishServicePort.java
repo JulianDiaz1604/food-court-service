@@ -8,4 +8,6 @@ public interface IDishServicePort {
     Dish createDish(Dish dish, UUID ownerId);
 
     Dish updateDish(UUID dishId, Integer price, String description, UUID ownerId);
+
+    Dish setDishStatus(UUID dishId, Boolean active, UUID ownerId);
 }
