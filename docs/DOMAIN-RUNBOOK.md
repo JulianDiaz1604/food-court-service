@@ -272,3 +272,47 @@ the requester's identity now comes from the token instead of the request body.
 | `RestaurantNotFoundException` | The restaurant does not exist | 404 |
 | (unauthenticated request) | Authentication is required | 401 |
 | (authenticated, non-client role) | (Spring Security forbidden) | 403 |
+
+---
+
+## HU11 — Place order
+
+- **Endpoint:** `POST /api/v1/orders`
+- **Use case:** `OrderUseCase.placeOrder`
+- **Validator:** `OrderValidator.validateNewOrder` (pure: required fields and quantities only)
+- **Persistence port:** `IOrderPersistencePort.saveOrder` / `existsActiveOrderByClient` → `OrderJpaAdapter`
+  (persists the order with its items via a unidirectional `@OneToMany` on `order_items`; the active
+  check uses the derived query `existsByClientIdAndStatusIn`).
+- **Cross-aggregate ports:** `IRestaurantPersistencePort.findRestaurantById` (restaurant must exist)
+  and `IDishPersistencePort.findDishById` (each dish must exist and belong to the restaurant).
+
+### Business rules / invariants
+- An order consists of a **list of dishes of a single restaurant**: the order carries `restaurantId`
+  and every dish referenced in its items must belong to that same restaurant; otherwise the order is
+  rejected (`DishNotInRestaurantException`, 400).
+- Every order must specify the **restaurant**, the **chosen dishes** and the **quantity** of each.
+  The item list cannot be empty (`EmptyOrderException`, 400), each item requires a `dishId` and a
+  `quantity`, and every `quantity` must be **greater than zero** (`InvalidQuantityException`, 400).
+- Each referenced dish must exist; a missing dish is rejected (`DishNotFoundException`, 404).
+- Immediately after being received, the order is persisted with status **`PENDING`** (never trusted
+  from the request).
+- The **client** is taken from the JWT (`@AuthenticationPrincipal`), never from the body.
+- A client may place a new order **only if they have no order in progress** — i.e. no order in
+  `PENDING`, `IN_PREPARATION` or `READY`; otherwise `ClientHasActiveOrderException` (409).
+- Authorization: only the **CLIENT** role may place orders
+  (`POST /api/v1/orders` → CLIENT rule in `SecurityConfig`).
+- The remaining lifecycle transitions (IN_PREPARATION / READY / DELIVERED / CANCELLED) are **not**
+  implemented in HU11 — only creation in `PENDING`.
+
+### Exceptions
+| Exception | Message | HTTP |
+|-----------|---------|------|
+| `RequiredFieldException` | All fields are required | 400 |
+| `EmptyOrderException` | An order must contain at least one dish | 400 |
+| `InvalidQuantityException` | Each dish quantity must be greater than zero | 400 |
+| `DishNotInRestaurantException` | All dishes in an order must belong to the specified restaurant | 400 |
+| `RestaurantNotFoundException` | The restaurant does not exist | 404 |
+| `DishNotFoundException` | The dish does not exist | 404 |
+| `ClientHasActiveOrderException` | The client already has an order in progress | 409 |
+| (unauthenticated request) | Authentication is required | 401 |
+| (authenticated, non-client role) | (Spring Security forbidden) | 403 |
