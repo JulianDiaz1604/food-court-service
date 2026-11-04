@@ -12,6 +12,8 @@ public final class DomainConstants {
     public static final String PHONE_REGEX = "^\\+?[0-9]+$";
     public static final String NAME_WITH_LETTER_REGEX = ".*[a-zA-Z].*";
     public static final String NIT_REGEX = "^[0-9]+$";
+    public static final String EMAIL_REGEX = "^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$";
+    public static final String DOCUMENT_REGEX = "^[0-9]+$";
 
     public static final String FIELD_REQUIRED_MESSAGE = "All fields are required";
     public static final String INVALID_PHONE_MESSAGE =
@@ -30,6 +32,11 @@ public final class DomainConstants {
             "The dish price must be a positive number greater than zero";
     public static final String RESTAURANT_NOT_FOUND_MESSAGE = "The restaurant does not exist";
     public static final String NOT_RESTAURANT_OWNER_MESSAGE =
-            "The dish can only be managed by the owner of the restaurant";
+            "This action can only be performed by the owner of the restaurant";
     public static final String DISH_NOT_FOUND_MESSAGE = "The dish does not exist";
+
+    public static final String INVALID_EMAIL_MESSAGE = "The email format is invalid";
+    public static final String INVALID_DOCUMENT_MESSAGE = "The document number must contain digits only";
+    public static final String EMPLOYEE_ALREADY_EXISTS_MESSAGE =
+            "An employee with this email or document number already exists";
 }

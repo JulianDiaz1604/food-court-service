@@ -8,6 +8,8 @@ import com.pragma.foodcourt.domain.model.Restaurant;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
 import java.util.UUID;
 
@@ -60,24 +62,11 @@ class RestaurantValidatorTest {
                 () -> validator.validateNewRestaurant(validRestaurant));
     }
 
-    @Test
-    @DisplayName("Rejects a non-numeric NIT")
-    void shouldThrowWhenNitIsNonNumeric() {
-        validRestaurant.setNit("900-ABC");
-        assertThrows(InvalidNitException.class, () -> validator.validateNewRestaurant(validRestaurant));
-    }
-
-    @Test
-    @DisplayName("Rejects a NIT shorter than 9 digits")
-    void shouldThrowWhenNitIsTooShort() {
-        validRestaurant.setNit("12345678");
-        assertThrows(InvalidNitException.class, () -> validator.validateNewRestaurant(validRestaurant));
-    }
-
-    @Test
-    @DisplayName("Rejects a NIT longer than 10 digits")
-    void shouldThrowWhenNitIsTooLong() {
-        validRestaurant.setNit("12345678901");
+    @ParameterizedTest
+    @ValueSource(strings = {"900-ABC", "12345678", "12345678901"})
+    @DisplayName("Rejects an invalid NIT (non-numeric, shorter than 9 or longer than 10 digits)")
+    void shouldThrowWhenNitIsInvalid(String invalidNit) {
+        validRestaurant.setNit(invalidNit);
         assertThrows(InvalidNitException.class, () -> validator.validateNewRestaurant(validRestaurant));
     }
 
