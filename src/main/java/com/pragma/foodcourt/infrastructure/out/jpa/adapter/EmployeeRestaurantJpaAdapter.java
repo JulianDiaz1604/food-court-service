@@ -28,4 +28,9 @@ public class EmployeeRestaurantJpaAdapter implements IEmployeePersistencePort {
                 .map(EmployeeRestaurantEntity::getRestaurantId)
                 .orElse(null);
     }
+
+    @Override
+    public boolean existsLink(UUID employeeId, UUID restaurantId) {
+        return employeeRestaurantRepository.existsByEmployeeIdAndRestaurantId(employeeId, restaurantId);
+    }
 }

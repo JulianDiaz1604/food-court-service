@@ -1,6 +1,7 @@
 package com.pragma.foodcourt.application.handler.impl;
 
 import com.pragma.foodcourt.application.dto.request.CreateRestaurantRequestDto;
+import com.pragma.foodcourt.application.dto.response.OwnerIdResponseDto;
 import com.pragma.foodcourt.application.dto.response.PageResponseDto;
 import com.pragma.foodcourt.application.dto.response.RestaurantListItemResponseDto;
 import com.pragma.foodcourt.application.dto.response.RestaurantResponseDto;
@@ -13,6 +14,8 @@ import com.pragma.foodcourt.domain.model.Restaurant;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -40,5 +43,12 @@ public class RestaurantHandler implements IRestaurantHandler {
                 result.getSize(),
                 result.getTotalElements(),
                 result.getTotalPages());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public OwnerIdResponseDto getOwnerId(UUID restaurantId) {
+        UUID ownerId = restaurantServicePort.findOwnerId(restaurantId);
+        return new OwnerIdResponseDto(restaurantId, ownerId);
     }
 }

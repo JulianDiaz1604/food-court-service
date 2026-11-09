@@ -9,4 +9,6 @@ import java.util.UUID;
 public interface IEmployeeRestaurantRepository extends JpaRepository<EmployeeRestaurantEntity, UUID> {
 
     Optional<EmployeeRestaurantEntity> findByEmployeeId(UUID employeeId);
+
+    boolean existsByEmployeeIdAndRestaurantId(UUID employeeId, UUID restaurantId);
 }

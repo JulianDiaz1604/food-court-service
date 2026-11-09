@@ -3,6 +3,7 @@ package com.pragma.foodcourt.domain.usecase;
 import com.pragma.foodcourt.domain.api.IRestaurantServicePort;
 import com.pragma.foodcourt.domain.exception.InvalidOwnerException;
 import com.pragma.foodcourt.domain.exception.NitAlreadyExistsException;
+import com.pragma.foodcourt.domain.exception.RestaurantNotFoundException;
 import com.pragma.foodcourt.domain.model.PagedResult;
 import com.pragma.foodcourt.domain.model.Restaurant;
 import com.pragma.foodcourt.domain.spi.IRestaurantPersistencePort;
@@ -41,6 +42,15 @@ public class RestaurantUseCase implements IRestaurantServicePort {
     public PagedResult<Restaurant> listRestaurants(int page, int size) {
         paginationValidator.validate(page, size);
         return restaurantPersistencePort.findAllOrderedByName(page, size);
+    }
+
+    @Override
+    public UUID findOwnerId(UUID restaurantId) {
+        Restaurant restaurant = restaurantPersistencePort.findRestaurantById(restaurantId);
+        if (restaurant == null) {
+            throw new RestaurantNotFoundException();
+        }
+        return restaurant.getOwnerId();
     }
 
     private void ensureNitIsAvailable(String nit) {

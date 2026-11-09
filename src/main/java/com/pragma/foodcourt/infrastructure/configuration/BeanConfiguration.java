@@ -86,8 +86,7 @@ public class BeanConfiguration {
 
     @Bean
     public IEmployeeServicePort employeeServicePort() {
-        return new EmployeeUseCase(userCreationPort(), restaurantPersistencePort(),
-                employeePersistencePort(), employeeValidator());
+        return new EmployeeUseCase(restaurantPersistencePort(), employeePersistencePort());
     }
 
     @Bean

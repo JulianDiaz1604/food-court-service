@@ -1,48 +1,34 @@
 package com.pragma.foodcourt.domain.usecase;
 
 import com.pragma.foodcourt.domain.api.IEmployeeServicePort;
+import com.pragma.foodcourt.domain.exception.EmployeeLinkAlreadyExistsException;
 import com.pragma.foodcourt.domain.exception.NotRestaurantOwnerException;
 import com.pragma.foodcourt.domain.exception.RestaurantNotFoundException;
-import com.pragma.foodcourt.domain.model.Employee;
 import com.pragma.foodcourt.domain.model.EmployeeRestaurant;
 import com.pragma.foodcourt.domain.model.Restaurant;
 import com.pragma.foodcourt.domain.spi.IEmployeePersistencePort;
 import com.pragma.foodcourt.domain.spi.IRestaurantPersistencePort;
-import com.pragma.foodcourt.domain.spi.IUserCreationPort;
-import com.pragma.foodcourt.domain.validation.EmployeeValidator;
 
 import java.util.UUID;
 
 public class EmployeeUseCase implements IEmployeeServicePort {
 
-    private final IUserCreationPort userCreationPort;
     private final IRestaurantPersistencePort restaurantPersistencePort;
     private final IEmployeePersistencePort employeePersistencePort;
-    private final EmployeeValidator employeeValidator;
 
-    public EmployeeUseCase(IUserCreationPort userCreationPort,
-                           IRestaurantPersistencePort restaurantPersistencePort,
-                           IEmployeePersistencePort employeePersistencePort,
-                           EmployeeValidator employeeValidator) {
-        this.userCreationPort = userCreationPort;
+    public EmployeeUseCase(IRestaurantPersistencePort restaurantPersistencePort,
+                           IEmployeePersistencePort employeePersistencePort) {
         this.restaurantPersistencePort = restaurantPersistencePort;
         this.employeePersistencePort = employeePersistencePort;
-        this.employeeValidator = employeeValidator;
     }
 
     @Override
-    public Employee createEmployee(Employee employee, UUID requesterOwnerId) {
-        employeeValidator.validateNewEmployee(employee);
-        Restaurant restaurant = findRestaurant(employee.getRestaurantId());
+    public EmployeeRestaurant registerEmployee(UUID employeeId, UUID restaurantId, UUID requesterOwnerId) {
+        Restaurant restaurant = findRestaurant(restaurantId);
         ensureRequesterOwnsRestaurant(restaurant, requesterOwnerId);
-
-        UUID employeeId = userCreationPort.createEmployee(employee);
-        employeePersistencePort.saveEmployeeRestaurant(
-                new EmployeeRestaurant(null, employeeId, restaurant.getId()));
-
-        employee.setId(employeeId);
-        employee.setPassword(null);
-        return employee;
+        ensureLinkDoesNotExist(employeeId, restaurantId);
+        return employeePersistencePort.saveEmployeeRestaurant(
+                new EmployeeRestaurant(null, employeeId, restaurantId));
     }
 
     private Restaurant findRestaurant(UUID restaurantId) {
@@ -56,6 +42,12 @@ public class EmployeeUseCase implements IEmployeeServicePort {
     private void ensureRequesterOwnsRestaurant(Restaurant restaurant, UUID requesterOwnerId) {
         if (!restaurant.getOwnerId().equals(requesterOwnerId)) {
             throw new NotRestaurantOwnerException();
+        }
+    }
+
+    private void ensureLinkDoesNotExist(UUID employeeId, UUID restaurantId) {
+        if (employeePersistencePort.existsLink(employeeId, restaurantId)) {
+            throw new EmployeeLinkAlreadyExistsException();
         }
     }
 }
