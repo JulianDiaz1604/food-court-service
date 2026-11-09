@@ -1,7 +1,7 @@
 package com.pragma.foodcourt.infrastructure.input.rest;
 
-import com.pragma.foodcourt.application.dto.request.CreateEmployeeRequestDto;
-import com.pragma.foodcourt.application.dto.response.EmployeeResponseDto;
+import com.pragma.foodcourt.application.dto.request.LinkEmployeeRequestDto;
+import com.pragma.foodcourt.application.dto.response.LinkEmployeeResponseDto;
 import com.pragma.foodcourt.application.handler.IEmployeeHandler;
 import com.pragma.foodcourt.infrastructure.configuration.security.AuthenticatedUser;
 import io.swagger.v3.oas.annotations.Operation;
@@ -28,22 +28,21 @@ public class EmployeeRestController {
 
     private final IEmployeeHandler employeeHandler;
 
-    @Operation(summary = "Create an employee for a restaurant (owner of that restaurant only)")
+    @Operation(summary = "Link an existing employee to a restaurant (owner of that restaurant only)")
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "201", description = "Employee account created"),
-            @ApiResponse(responseCode = "400", description = "Invalid employee data"),
+            @ApiResponse(responseCode = "201", description = "Employee linked to restaurant"),
             @ApiResponse(responseCode = "401", description = "Authentication is required"),
             @ApiResponse(responseCode = "403", description = "Requester is not the owner of the restaurant"),
             @ApiResponse(responseCode = "404", description = "Restaurant does not exist"),
-            @ApiResponse(responseCode = "409", description = "Email or document number already registered")
+            @ApiResponse(responseCode = "409", description = "Employee is already linked to this restaurant")
     })
     @PostMapping
-    public ResponseEntity<EmployeeResponseDto> createEmployee(
+    public ResponseEntity<LinkEmployeeResponseDto> registerEmployee(
             @PathVariable UUID restaurantId,
             @AuthenticationPrincipal AuthenticatedUser authenticatedUser,
-            @RequestBody CreateEmployeeRequestDto request) {
+            @RequestBody LinkEmployeeRequestDto request) {
         return new ResponseEntity<>(
-                employeeHandler.createEmployee(request, restaurantId, authenticatedUser.userId()),
+                employeeHandler.registerEmployee(request, restaurantId, authenticatedUser.userId()),
                 HttpStatus.CREATED);
     }
 }

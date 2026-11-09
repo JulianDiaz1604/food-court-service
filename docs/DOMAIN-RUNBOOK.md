@@ -166,45 +166,54 @@ the requester's identity now comes from the token instead of the request body.
 
 ---
 
-## HU6 — Create employee
+## HU6 (Slice 2) — Restaurant ownership GET + Link-only employee POST
 
-- **Endpoint:** `POST /api/v1/restaurants/{restaurantId}/employees`
-- **Use case:** `EmployeeUseCase.createEmployee`
-- **Validator:** `EmployeeValidator.validateNewEmployee`
-- **Cross-service port (create):** `IUserCreationPort.createEmployee` → `UserCreationRestClientAdapter`
-  (calls `POST /api/v1/users/employee` on `users-service`, which creates the user with the EMPLOYEE role).
-- **Cross-aggregate port:** `IRestaurantPersistencePort.findRestaurantById` (loads the target restaurant
-  to check existence and ownership).
-- **Persistence port:** `IEmployeePersistencePort.saveEmployeeRestaurant` → `EmployeeRestaurantJpaAdapter`
-  (stores the employee↔restaurant link in the `employee_restaurant` table).
+### GET /api/v1/restaurants/{restaurantId}/owner — Restaurant ownership query
 
-### Business rules / invariants
-- Only the **OWNER of the target restaurant** may create an employee there:
+- **Use case:** `RestaurantUseCase.findOwnerId`
+- **Persistence port:** `IRestaurantPersistencePort.findRestaurantById` → `RestaurantJpaAdapter`
+- **Authorization:** any authenticated user (all roles accepted; Spring Security `.authenticated()`).
+
+#### Business rules / invariants
+- Returns the `ownerId` and `restaurantId` of the given restaurant.
+- The `restaurantId` path variable must reference an existing restaurant; otherwise 404.
+- Unauthenticated access → 401 (enforced by `JwtAuthenticationEntryPoint`).
+
+#### Exceptions
+| Exception | Message | HTTP |
+|-----------|---------|------|
+| `RestaurantNotFoundException` | The restaurant does not exist | 404 |
+| (unauthenticated request) | Authentication is required | 401 |
+
+---
+
+### POST /api/v1/restaurants/{restaurantId}/employees — Link-only employee registration
+
+> **Transitional note (Slice 2):** Employee account creation has moved to `users-service` (Slice 3).
+> This endpoint only registers the `employee_restaurant` link; the caller must have already
+> created the employee user via `users-service`.
+
+- **Use case:** `EmployeeUseCase.registerEmployee`
+- **Cross-aggregate port:** `IRestaurantPersistencePort.findRestaurantById` (checks existence and ownership).
+- **Persistence port:** `IEmployeePersistencePort.saveEmployeeRestaurant` + `existsLink`
+  → `EmployeeRestaurantJpaAdapter`.
+
+#### Business rules / invariants
+- Only the **OWNER of the target restaurant** may link an employee:
   - `SecurityConfig` gates `POST /api/v1/restaurants/*/employees` to role **OWNER**;
   - the use case additionally checks that the authenticated caller owns that specific restaurant
     (`restaurant.ownerId == requesterOwnerId`), otherwise `NotRestaurantOwnerException` (403).
-- Required fields: `name`, `lastName`, `documentNumber`, `phone`, `email`, `password`, `restaurantId`.
-  No birth date / adult-age rule applies to employees (per HU6 acceptance criteria).
-- `email` valid format; `phone` digits only, optional `+`, max 13; `documentNumber` digits only.
-- The `restaurantId` (path variable) must reference an existing restaurant; otherwise 404.
-- The employee is created in `users-service` with the **EMPLOYEE** role (role forced there);
-  `food-court-service` persists the `employee_restaurant` link and never stores credentials.
-- The owner's JWT is forwarded to `users-service` (`AuthorizationForwardingInterceptor`) so the
-  downstream endpoint authorizes the same OWNER caller.
-- Uniqueness of email/document lives in `users-service`; a 409 from it is surfaced as
-  `EmployeeAlreadyExistsException` (409).
-- The response never includes the password.
+- Request body: `{ "employeeId": "<uuid>" }`. The `employeeId` must reference an existing user in
+  the users-service with the **EMPLOYEE** role (enforced by users-service; not re-validated here).
+- The `restaurantId` path variable must reference an existing restaurant; otherwise 404.
+- Duplicate links (same `employeeId` and same `restaurantId`) are rejected with 409.
 
-### Exceptions
+#### Exceptions
 | Exception | Message | HTTP |
 |-----------|---------|------|
-| `RequiredFieldException` | All fields are required | 400 |
-| `InvalidEmailFormatException` | The email format is invalid | 400 |
-| `InvalidPhoneFormatException` | The phone must be numeric, may start with '+', and have at most 13 characters | 400 |
-| `InvalidDocumentNumberException` | The document number must contain digits only | 400 |
 | `RestaurantNotFoundException` | The restaurant does not exist | 404 |
 | `NotRestaurantOwnerException` | This action can only be performed by the owner of the restaurant | 403 |
-| `EmployeeAlreadyExistsException` | An employee with this email or document number already exists | 409 |
+| `EmployeeLinkAlreadyExistsException` | The employee is already linked to this restaurant | 409 |
 | (unauthenticated request) | Authentication is required | 401 |
 
 ---

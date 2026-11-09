@@ -4,6 +4,7 @@ import com.pragma.foodcourt.domain.exception.InvalidOwnerException;
 import com.pragma.foodcourt.domain.exception.InvalidPaginationException;
 import com.pragma.foodcourt.domain.exception.InvalidRestaurantNameException;
 import com.pragma.foodcourt.domain.exception.NitAlreadyExistsException;
+import com.pragma.foodcourt.domain.exception.RestaurantNotFoundException;
 import com.pragma.foodcourt.domain.model.PagedResult;
 import com.pragma.foodcourt.domain.model.Restaurant;
 import com.pragma.foodcourt.domain.spi.IRestaurantPersistencePort;
@@ -114,5 +115,27 @@ class RestaurantUseCaseTest {
     void shouldThrowWhenPaginationIsInvalid() {
         assertThrows(InvalidPaginationException.class, () -> restaurantUseCase.listRestaurants(-1, 10));
         verify(restaurantPersistencePort, never()).findAllOrderedByName(anyInt(), anyInt());
+    }
+
+    @Test
+    @DisplayName("Returns the ownerId when the restaurant exists (ROV-S01)")
+    void shouldReturnOwnerIdWhenRestaurantExists() {
+        UUID restaurantId = UUID.randomUUID();
+        when(restaurantPersistencePort.findRestaurantById(restaurantId)).thenReturn(validRestaurant);
+
+        UUID result = restaurantUseCase.findOwnerId(restaurantId);
+
+        assertEquals(OWNER_ID, result);
+        verify(restaurantPersistencePort).findRestaurantById(restaurantId);
+    }
+
+    @Test
+    @DisplayName("Throws RestaurantNotFoundException when the restaurant does not exist (ROV-S02, ROV-S05)")
+    void shouldThrowWhenRestaurantNotFoundOnFindOwnerId() {
+        UUID restaurantId = UUID.randomUUID();
+        when(restaurantPersistencePort.findRestaurantById(restaurantId)).thenReturn(null);
+
+        assertThrows(RestaurantNotFoundException.class,
+                () -> restaurantUseCase.findOwnerId(restaurantId));
     }
 }

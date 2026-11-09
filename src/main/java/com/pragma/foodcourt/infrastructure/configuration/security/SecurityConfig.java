@@ -20,6 +20,7 @@ public class SecurityConfig {
     private static final String CLIENT_ROLE = "CLIENT";
     private static final String EMPLOYEE_ROLE = "EMPLOYEE";
     private static final String RESTAURANTS_ENDPOINT = "/api/v1/restaurants";
+    private static final String RESTAURANT_OWNER_ENDPOINT = "/api/v1/restaurants/*/owner";
     private static final String EMPLOYEES_ENDPOINT = "/api/v1/restaurants/*/employees";
     private static final String DISHES_ENDPOINT = "/api/v1/dishes";
     private static final String DISHES_ITEM_ENDPOINT = "/api/v1/dishes/**";
@@ -56,6 +57,7 @@ public class SecurityConfig {
                         .requestMatchers(PUBLIC_ENDPOINTS).permitAll()
                         .requestMatchers(HttpMethod.POST, RESTAURANTS_ENDPOINT).hasRole(ADMINISTRATOR_ROLE)
                         .requestMatchers(HttpMethod.GET, RESTAURANTS_ENDPOINT).hasRole(CLIENT_ROLE)
+                        .requestMatchers(HttpMethod.GET, RESTAURANT_OWNER_ENDPOINT).authenticated()
                         .requestMatchers(HttpMethod.POST, EMPLOYEES_ENDPOINT).hasRole(OWNER_ROLE)
                         .requestMatchers(HttpMethod.POST, DISHES_ENDPOINT).hasRole(OWNER_ROLE)
                         .requestMatchers(HttpMethod.PATCH, DISHES_ITEM_ENDPOINT).hasRole(OWNER_ROLE)

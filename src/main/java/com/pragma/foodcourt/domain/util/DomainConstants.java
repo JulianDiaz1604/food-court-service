@@ -60,4 +60,7 @@ public final class DomainConstants {
             "The provided order status is invalid";
     public static final String EMPLOYEE_NOT_LINKED_MESSAGE =
             "The employee is not assigned to any restaurant";
+
+    public static final String EMPLOYEE_LINK_ALREADY_EXISTS_MESSAGE =
+            "The employee is already linked to this restaurant";
 }

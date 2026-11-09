@@ -1,17 +1,19 @@
 package com.pragma.foodcourt.domain.api;
 
-import com.pragma.foodcourt.domain.model.Employee;
+import com.pragma.foodcourt.domain.model.EmployeeRestaurant;
 
 import java.util.UUID;
 
 public interface IEmployeeServicePort {
 
     /**
-     * Creates an employee for the given restaurant. Only the owner of that restaurant may do it.
+     * Links an existing employee (a user already in the users-service with the EMPLOYEE role)
+     * to a restaurant. Only the owner of that restaurant may perform this action.
      *
-     * @param employee         the employee personal data plus the target restaurant id.
+     * @param employeeId       the id of the employee user to link.
+     * @param restaurantId     the target restaurant id.
      * @param requesterOwnerId the authenticated caller (must own the restaurant).
-     * @return the employee with its generated id.
+     * @return the persisted employee-restaurant link.
      */
-    Employee createEmployee(Employee employee, UUID requesterOwnerId);
+    EmployeeRestaurant registerEmployee(UUID employeeId, UUID restaurantId, UUID requesterOwnerId);
 }
