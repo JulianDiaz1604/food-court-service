@@ -5,6 +5,8 @@ import com.pragma.foodcourt.domain.exception.ClientHasActiveOrderException;
 import com.pragma.foodcourt.domain.exception.DishNotFoundException;
 import com.pragma.foodcourt.domain.exception.DishNotInRestaurantException;
 import com.pragma.foodcourt.domain.exception.EmployeeNotLinkedToRestaurantException;
+import com.pragma.foodcourt.domain.exception.OrderNotFoundException;
+import com.pragma.foodcourt.domain.exception.OrderNotFromEmployeeRestaurantException;
 import com.pragma.foodcourt.domain.exception.RestaurantNotFoundException;
 import com.pragma.foodcourt.domain.model.Dish;
 import com.pragma.foodcourt.domain.model.Order;
@@ -60,6 +62,22 @@ public class OrderUseCase implements IOrderServicePort {
         OrderStatus orderStatus = orderValidator.parseStatus(status);
         UUID restaurantId = resolveEmployeeRestaurant(employeeId);
         return orderPersistencePort.findOrdersByRestaurantAndStatus(restaurantId, orderStatus, page, size);
+    }
+
+    @Override
+    public Order assignOrder(UUID orderId, UUID employeeId) {
+        Order order = orderPersistencePort.findOrderById(orderId);
+        if (order == null) {
+            throw new OrderNotFoundException();
+        }
+        UUID employeeRestaurantId = resolveEmployeeRestaurant(employeeId);
+        if (!employeeRestaurantId.equals(order.getRestaurantId())) {
+            throw new OrderNotFromEmployeeRestaurantException();
+        }
+        orderValidator.validateAssignable(order);
+        order.setAssignedEmployeeId(employeeId);
+        order.setStatus(OrderStatus.IN_PREPARATION);
+        return orderPersistencePort.saveOrder(order);
     }
 
     private UUID resolveEmployeeRestaurant(UUID employeeId) {

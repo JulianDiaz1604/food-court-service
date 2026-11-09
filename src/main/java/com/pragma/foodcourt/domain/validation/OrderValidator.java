@@ -3,6 +3,7 @@ package com.pragma.foodcourt.domain.validation;
 import com.pragma.foodcourt.domain.exception.EmptyOrderException;
 import com.pragma.foodcourt.domain.exception.InvalidOrderStatusException;
 import com.pragma.foodcourt.domain.exception.InvalidQuantityException;
+import com.pragma.foodcourt.domain.exception.OrderNotAssignableException;
 import com.pragma.foodcourt.domain.exception.RequiredFieldException;
 import com.pragma.foodcourt.domain.model.Order;
 import com.pragma.foodcourt.domain.model.OrderItem;
@@ -22,6 +23,12 @@ public class OrderValidator {
             return OrderStatus.valueOf(status.trim().toUpperCase(Locale.ROOT));
         } catch (IllegalArgumentException invalidStatus) {
             throw new InvalidOrderStatusException();
+        }
+    }
+
+    public void validateAssignable(Order order) {
+        if (order.getStatus() != OrderStatus.PENDING) {
+            throw new OrderNotAssignableException();
         }
     }
 

@@ -3,6 +3,7 @@ package com.pragma.foodcourt.domain.validation;
 import com.pragma.foodcourt.domain.exception.EmptyOrderException;
 import com.pragma.foodcourt.domain.exception.InvalidOrderStatusException;
 import com.pragma.foodcourt.domain.exception.InvalidQuantityException;
+import com.pragma.foodcourt.domain.exception.OrderNotAssignableException;
 import com.pragma.foodcourt.domain.exception.RequiredFieldException;
 import com.pragma.foodcourt.domain.model.Order;
 import com.pragma.foodcourt.domain.model.OrderItem;
@@ -32,7 +33,7 @@ class OrderValidatorTest {
     }
 
     private Order orderWith(List<OrderItem> items) {
-        return new Order(null, null, RESTAURANT_ID, null, items);
+        return new Order(null, null, RESTAURANT_ID, null, null, items);
     }
 
     @Test
@@ -46,7 +47,7 @@ class OrderValidatorTest {
     @Test
     @DisplayName("Rejects an order without restaurant id")
     void shouldThrowWhenRestaurantIdIsMissing() {
-        Order order = new Order(null, null, null, null, List.of(new OrderItem(DISH_ID, 1)));
+        Order order = new Order(null, null, null, null, null, List.of(new OrderItem(DISH_ID, 1)));
 
         assertThrows(RequiredFieldException.class, () -> orderValidator.validateNewOrder(order));
     }
@@ -108,5 +109,24 @@ class OrderValidatorTest {
     @DisplayName("Rejects a status that is not part of the lifecycle")
     void shouldThrowWhenStatusIsUnknown() {
         assertThrows(InvalidOrderStatusException.class, () -> orderValidator.parseStatus("SHIPPED"));
+    }
+
+    @Test
+    @DisplayName("Accepts assigning an order that is in PENDING status")
+    void shouldAcceptAssignableWhenOrderIsPending() {
+        Order order = new Order(null, null, RESTAURANT_ID, OrderStatus.PENDING, null,
+                List.of(new OrderItem(DISH_ID, 1)));
+
+        assertDoesNotThrow(() -> orderValidator.validateAssignable(order));
+    }
+
+    @Test
+    @DisplayName("Rejects assigning an order that is not in PENDING status")
+    void shouldThrowWhenAssigningNonPendingOrder() {
+        Order order = new Order(null, null, RESTAURANT_ID, OrderStatus.IN_PREPARATION, null,
+                List.of(new OrderItem(DISH_ID, 1)));
+
+        assertThrows(OrderNotAssignableException.class,
+                () -> orderValidator.validateAssignable(order));
     }
 }

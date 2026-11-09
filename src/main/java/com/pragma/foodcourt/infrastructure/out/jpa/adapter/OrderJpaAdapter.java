@@ -31,6 +31,13 @@ public class OrderJpaAdapter implements IOrderPersistencePort {
     }
 
     @Override
+    public Order findOrderById(UUID orderId) {
+        return orderRepository.findById(orderId)
+                .map(orderEntityMapper::toOrder)
+                .orElse(null);
+    }
+
+    @Override
     public boolean existsActiveOrderByClient(UUID clientId) {
         return orderRepository.existsByClientIdAndStatusIn(clientId, ACTIVE_STATUSES);
     }

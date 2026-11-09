@@ -5,6 +5,8 @@ import com.pragma.foodcourt.domain.exception.DishNotFoundException;
 import com.pragma.foodcourt.domain.exception.DomainException;
 import com.pragma.foodcourt.domain.exception.EmployeeNotLinkedToRestaurantException;
 import com.pragma.foodcourt.domain.exception.NotRestaurantOwnerException;
+import com.pragma.foodcourt.domain.exception.OrderNotFoundException;
+import com.pragma.foodcourt.domain.exception.OrderNotFromEmployeeRestaurantException;
 import com.pragma.foodcourt.domain.exception.RestaurantNotFoundException;
 import com.pragma.foodcourt.infrastructure.exception.NoDataFoundException;
 import org.springframework.http.HttpStatus;
@@ -41,9 +43,23 @@ public class ControllerAdvisor {
                 .body(Collections.singletonMap(MESSAGE, exception.getMessage()));
     }
 
+    @ExceptionHandler(OrderNotFoundException.class)
+    public ResponseEntity<Map<String, String>> handleOrderNotFoundException(
+            OrderNotFoundException exception) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(Collections.singletonMap(MESSAGE, exception.getMessage()));
+    }
+
     @ExceptionHandler(NotRestaurantOwnerException.class)
     public ResponseEntity<Map<String, String>> handleNotRestaurantOwnerException(
             NotRestaurantOwnerException exception) {
+        return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                .body(Collections.singletonMap(MESSAGE, exception.getMessage()));
+    }
+
+    @ExceptionHandler(OrderNotFromEmployeeRestaurantException.class)
+    public ResponseEntity<Map<String, String>> handleOrderNotFromEmployeeRestaurantException(
+            OrderNotFromEmployeeRestaurantException exception) {
         return ResponseEntity.status(HttpStatus.FORBIDDEN)
                 .body(Collections.singletonMap(MESSAGE, exception.getMessage()));
     }

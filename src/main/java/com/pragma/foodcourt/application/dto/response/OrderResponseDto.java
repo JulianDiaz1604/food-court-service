@@ -17,5 +17,6 @@ public class OrderResponseDto {
     private UUID clientId;
     private UUID restaurantId;
     private String status;
+    private UUID assignedEmployeeId;
     private List<OrderItemResponseDto> items;
 }

@@ -17,5 +17,6 @@ public class Order {
     private UUID clientId;
     private UUID restaurantId;
     private OrderStatus status;
+    private UUID assignedEmployeeId;
     private List<OrderItem> items;
 }
