@@ -363,3 +363,39 @@ the requester's identity now comes from the token instead of the request body.
 | `EmployeeNotLinkedToRestaurantException` | The employee is not assigned to any restaurant | 404 |
 | (unauthenticated request) | Authentication is required | 401 |
 | (authenticated, non-employee role) | (Spring Security forbidden) | 403 |
+
+## HU13 — Assign order and move it to IN_PREPARATION
+
+- **Role:** Employee
+- **Endpoint:** `PATCH /api/v1/orders/{orderId}/assign`
+- **Use case:** `OrderUseCase.assignOrder`
+- **Validator:** `OrderValidator.validateAssignable` (pure state-transition rule: the order must be
+  in `PENDING`).
+- **Persistence ports:**
+  - `IOrderPersistencePort.findOrderById` → `OrderJpaAdapter` (`JpaRepository.findById`).
+  - `IEmployeePersistencePort.findRestaurantIdByEmployee` → `EmployeeRestaurantJpaAdapter`
+    (reuses the `employee_restaurant` link from HU6).
+  - `IOrderPersistencePort.saveOrder` → `OrderJpaAdapter` (persists the updated order).
+
+### Business rules / invariants
+- Assigning an order means writing the authenticated employee's id into the order's
+  **`assignedEmployeeId`** field (acceptance criterion 5). The employee is taken from the JWT
+  (`@AuthenticationPrincipal`), never from the body.
+- Assigning also performs the lifecycle transition **`PENDING → IN_PREPARATION`**. The order must be
+  in `PENDING`; any other status raises `OrderNotAssignableException` (409).
+- An employee can only operate on orders of the **restaurant they belong to** (standing rule shared
+  with HU12): the order's `restaurantId` must match the restaurant resolved from the employee's
+  `employee_restaurant` link, otherwise `OrderNotFromEmployeeRestaurantException` (403).
+- If the order does not exist, `OrderNotFoundException` (404).
+- Authorization: only the **EMPLOYEE** role may assign orders
+  (`PATCH /api/v1/orders/*/assign` → EMPLOYEE rule in `SecurityConfig`).
+
+### Exceptions
+| Exception | Message | HTTP |
+|-----------|---------|------|
+| `OrderNotFoundException` | The order does not exist | 404 |
+| `EmployeeNotLinkedToRestaurantException` | The employee is not assigned to any restaurant | 404 |
+| `OrderNotFromEmployeeRestaurantException` | The order does not belong to the employee's restaurant | 403 |
+| `OrderNotAssignableException` | Only orders in PENDING status can be assigned and moved to preparation | 409 |
+| (unauthenticated request) | Authentication is required | 401 |
+| (authenticated, non-employee role) | (Spring Security forbidden) | 403 |

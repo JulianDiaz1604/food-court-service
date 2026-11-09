@@ -9,4 +9,6 @@ public interface IOrderServicePort {
     Order placeOrder(Order order, UUID clientId);
 
     PagedResult<Order> listOrdersByStatus(UUID employeeId, String status, int page, int size);
+
+    Order assignOrder(UUID orderId, UUID employeeId);
 }

@@ -11,4 +11,6 @@ public interface IOrderHandler {
 
     PageResponseDto<OrderResponseDto> listOrdersByStatus(
             UUID employeeId, String status, int page, int size);
+
+    OrderResponseDto assignOrder(UUID orderId, UUID employeeId);
 }

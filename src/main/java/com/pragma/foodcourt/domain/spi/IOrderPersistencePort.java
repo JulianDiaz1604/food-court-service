@@ -9,6 +9,8 @@ import java.util.UUID;
 public interface IOrderPersistencePort {
     Order saveOrder(Order order);
 
+    Order findOrderById(UUID orderId);
+
     boolean existsActiveOrderByClient(UUID clientId);
 
     PagedResult<Order> findOrdersByRestaurantAndStatus(

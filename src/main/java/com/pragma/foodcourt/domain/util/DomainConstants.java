@@ -63,4 +63,10 @@ public final class DomainConstants {
 
     public static final String EMPLOYEE_LINK_ALREADY_EXISTS_MESSAGE =
             "The employee is already linked to this restaurant";
+
+    public static final String ORDER_NOT_FOUND_MESSAGE = "The order does not exist";
+    public static final String ORDER_NOT_FROM_EMPLOYEE_RESTAURANT_MESSAGE =
+            "The order does not belong to the employee's restaurant";
+    public static final String ORDER_NOT_ASSIGNABLE_MESSAGE =
+            "Only orders in PENDING status can be assigned and moved to preparation";
 }

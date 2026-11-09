@@ -7,6 +7,9 @@ import com.pragma.foodcourt.domain.exception.EmptyOrderException;
 import com.pragma.foodcourt.domain.exception.EmployeeNotLinkedToRestaurantException;
 import com.pragma.foodcourt.domain.exception.InvalidOrderStatusException;
 import com.pragma.foodcourt.domain.exception.InvalidPaginationException;
+import com.pragma.foodcourt.domain.exception.OrderNotAssignableException;
+import com.pragma.foodcourt.domain.exception.OrderNotFoundException;
+import com.pragma.foodcourt.domain.exception.OrderNotFromEmployeeRestaurantException;
 import com.pragma.foodcourt.domain.exception.RestaurantNotFoundException;
 import com.pragma.foodcourt.domain.model.Dish;
 import com.pragma.foodcourt.domain.model.Order;
@@ -48,6 +51,7 @@ class OrderUseCaseTest {
     private static final UUID RESTAURANT_ID = UUID.randomUUID();
     private static final UUID DISH_ID = UUID.randomUUID();
     private static final UUID EMPLOYEE_ID = UUID.randomUUID();
+    private static final UUID ORDER_ID = UUID.randomUUID();
 
     @Mock
     private IOrderPersistencePort orderPersistencePort;
@@ -71,7 +75,7 @@ class OrderUseCaseTest {
         orderUseCase = new OrderUseCase(orderPersistencePort, restaurantPersistencePort,
                 dishPersistencePort, employeePersistencePort, new OrderValidator(),
                 new PaginationValidator());
-        validOrder = new Order(null, null, RESTAURANT_ID, null,
+        validOrder = new Order(null, null, RESTAURANT_ID, null, null,
                 new ArrayList<>(List.of(new OrderItem(DISH_ID, 2))));
         restaurant = new Restaurant(RESTAURANT_ID, "Tablaito", "900123456",
                 "Calle 1 # 2-3", "+573005698325", "http://logo/tablaito.png", UUID.randomUUID());
@@ -147,7 +151,7 @@ class OrderUseCaseTest {
     @Test
     @DisplayName("Does not touch persistence when the order fails field validation")
     void shouldNotReachPersistenceWhenValidationFails() {
-        Order emptyOrder = new Order(null, null, RESTAURANT_ID, null, new ArrayList<>());
+        Order emptyOrder = new Order(null, null, RESTAURANT_ID, null, null, new ArrayList<>());
 
         assertThrows(EmptyOrderException.class,
                 () -> orderUseCase.placeOrder(emptyOrder, CLIENT_ID));
@@ -220,5 +224,75 @@ class OrderUseCaseTest {
         verify(employeePersistencePort, never()).findRestaurantIdByEmployee(any());
         verify(orderPersistencePort, never())
                 .findOrdersByRestaurantAndStatus(any(), any(), anyInt(), anyInt());
+    }
+
+    private Order orderInStatus(UUID restaurantId, OrderStatus status) {
+        return new Order(ORDER_ID, CLIENT_ID, restaurantId, status, null,
+                new ArrayList<>(List.of(new OrderItem(DISH_ID, 1))));
+    }
+
+    @Test
+    @DisplayName("Assigns the employee to a pending order and moves it to IN_PREPARATION")
+    void shouldAssignEmployeeAndMoveOrderToInPreparation() {
+        when(orderPersistencePort.findOrderById(ORDER_ID))
+                .thenReturn(orderInStatus(RESTAURANT_ID, OrderStatus.PENDING));
+        when(employeePersistencePort.findRestaurantIdByEmployee(EMPLOYEE_ID)).thenReturn(RESTAURANT_ID);
+        when(orderPersistencePort.saveOrder(any(Order.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+
+        Order result = orderUseCase.assignOrder(ORDER_ID, EMPLOYEE_ID);
+
+        ArgumentCaptor<Order> captor = ArgumentCaptor.forClass(Order.class);
+        verify(orderPersistencePort).saveOrder(captor.capture());
+        Order saved = captor.getValue();
+        assertEquals(OrderStatus.IN_PREPARATION, saved.getStatus());
+        assertEquals(EMPLOYEE_ID, saved.getAssignedEmployeeId());
+        assertSame(saved, result);
+    }
+
+    @Test
+    @DisplayName("Rejects assigning an order that does not exist")
+    void shouldThrowWhenOrderToAssignNotFound() {
+        when(orderPersistencePort.findOrderById(ORDER_ID)).thenReturn(null);
+
+        assertThrows(OrderNotFoundException.class,
+                () -> orderUseCase.assignOrder(ORDER_ID, EMPLOYEE_ID));
+        verify(orderPersistencePort, never()).saveOrder(any());
+    }
+
+    @Test
+    @DisplayName("Rejects assigning an order when the employee is not assigned to any restaurant")
+    void shouldThrowWhenAssigningEmployeeHasNoRestaurant() {
+        when(orderPersistencePort.findOrderById(ORDER_ID))
+                .thenReturn(orderInStatus(RESTAURANT_ID, OrderStatus.PENDING));
+        when(employeePersistencePort.findRestaurantIdByEmployee(EMPLOYEE_ID)).thenReturn(null);
+
+        assertThrows(EmployeeNotLinkedToRestaurantException.class,
+                () -> orderUseCase.assignOrder(ORDER_ID, EMPLOYEE_ID));
+        verify(orderPersistencePort, never()).saveOrder(any());
+    }
+
+    @Test
+    @DisplayName("Rejects assigning an order that belongs to another restaurant")
+    void shouldThrowWhenOrderBelongsToAnotherRestaurant() {
+        when(orderPersistencePort.findOrderById(ORDER_ID))
+                .thenReturn(orderInStatus(UUID.randomUUID(), OrderStatus.PENDING));
+        when(employeePersistencePort.findRestaurantIdByEmployee(EMPLOYEE_ID)).thenReturn(RESTAURANT_ID);
+
+        assertThrows(OrderNotFromEmployeeRestaurantException.class,
+                () -> orderUseCase.assignOrder(ORDER_ID, EMPLOYEE_ID));
+        verify(orderPersistencePort, never()).saveOrder(any());
+    }
+
+    @Test
+    @DisplayName("Rejects assigning an order that is not in PENDING status")
+    void shouldThrowWhenOrderIsNotPending() {
+        when(orderPersistencePort.findOrderById(ORDER_ID))
+                .thenReturn(orderInStatus(RESTAURANT_ID, OrderStatus.IN_PREPARATION));
+        when(employeePersistencePort.findRestaurantIdByEmployee(EMPLOYEE_ID)).thenReturn(RESTAURANT_ID);
+
+        assertThrows(OrderNotAssignableException.class,
+                () -> orderUseCase.assignOrder(ORDER_ID, EMPLOYEE_ID));
+        verify(orderPersistencePort, never()).saveOrder(any());
     }
 }

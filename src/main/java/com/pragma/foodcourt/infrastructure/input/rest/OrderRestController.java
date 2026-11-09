@@ -9,11 +9,14 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -62,5 +65,23 @@ public class OrderRestController {
             @RequestParam(defaultValue = "10") int size) {
         return ResponseEntity.ok(
                 orderHandler.listOrdersByStatus(authenticatedUser.userId(), status, page, size));
+    }
+
+    @Operation(summary = "Assign the authenticated employee to a PENDING order and move it to "
+            + "IN_PREPARATION (employee only; the employee is taken from the authenticated token)")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Order assigned and moved to IN_PREPARATION"),
+            @ApiResponse(responseCode = "401", description = "Authentication is required"),
+            @ApiResponse(responseCode = "403", description = "Requester is not an employee or the order "
+                    + "belongs to another restaurant"),
+            @ApiResponse(responseCode = "404", description = "The order does not exist or the employee is "
+                    + "not assigned to any restaurant"),
+            @ApiResponse(responseCode = "409", description = "The order is not in PENDING status")
+    })
+    @PatchMapping("/{orderId}/assign")
+    public ResponseEntity<OrderResponseDto> assignOrder(
+            @AuthenticationPrincipal AuthenticatedUser authenticatedUser,
+            @PathVariable UUID orderId) {
+        return ResponseEntity.ok(orderHandler.assignOrder(orderId, authenticatedUser.userId()));
     }
 }
