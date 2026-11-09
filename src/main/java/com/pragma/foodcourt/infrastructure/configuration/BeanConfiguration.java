@@ -8,20 +8,14 @@ import com.pragma.foodcourt.domain.spi.IDishPersistencePort;
 import com.pragma.foodcourt.domain.spi.IEmployeePersistencePort;
 import com.pragma.foodcourt.domain.spi.IOrderPersistencePort;
 import com.pragma.foodcourt.domain.spi.IRestaurantPersistencePort;
-import com.pragma.foodcourt.domain.spi.IUserCreationPort;
-import com.pragma.foodcourt.domain.spi.IUserValidationPort;
 import com.pragma.foodcourt.domain.usecase.DishUseCase;
 import com.pragma.foodcourt.domain.usecase.EmployeeUseCase;
 import com.pragma.foodcourt.domain.usecase.OrderUseCase;
 import com.pragma.foodcourt.domain.usecase.RestaurantUseCase;
 import com.pragma.foodcourt.domain.validation.DishValidator;
-import com.pragma.foodcourt.domain.validation.EmployeeValidator;
 import com.pragma.foodcourt.domain.validation.OrderValidator;
 import com.pragma.foodcourt.domain.validation.PaginationValidator;
 import com.pragma.foodcourt.domain.validation.RestaurantValidator;
-import com.pragma.foodcourt.infrastructure.out.client.AuthorizationForwardingInterceptor;
-import com.pragma.foodcourt.infrastructure.out.client.UserCreationRestClientAdapter;
-import com.pragma.foodcourt.infrastructure.out.client.UserValidationRestClientAdapter;
 import com.pragma.foodcourt.infrastructure.out.jpa.adapter.DishJpaAdapter;
 import com.pragma.foodcourt.infrastructure.out.jpa.adapter.EmployeeRestaurantJpaAdapter;
 import com.pragma.foodcourt.infrastructure.out.jpa.adapter.OrderJpaAdapter;
@@ -35,10 +29,8 @@ import com.pragma.foodcourt.infrastructure.out.jpa.repository.IEmployeeRestauran
 import com.pragma.foodcourt.infrastructure.out.jpa.repository.IOrderRepository;
 import com.pragma.foodcourt.infrastructure.out.jpa.repository.IRestaurantRepository;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.web.client.RestClient;
 
 @Configuration
 @RequiredArgsConstructor
@@ -53,35 +45,9 @@ public class BeanConfiguration {
     private final IOrderRepository orderRepository;
     private final IOrderEntityMapper orderEntityMapper;
 
-    @Value("${users-service.base-url}")
-    private String usersServiceBaseUrl;
-
-    @Bean
-    public RestClient usersRestClient() {
-        return RestClient.builder()
-                .baseUrl(usersServiceBaseUrl)
-                .requestInterceptor(new AuthorizationForwardingInterceptor())
-                .build();
-    }
-
-    @Bean
-    public IUserValidationPort userValidationPort() {
-        return new UserValidationRestClientAdapter(usersRestClient());
-    }
-
-    @Bean
-    public IUserCreationPort userCreationPort() {
-        return new UserCreationRestClientAdapter(usersRestClient());
-    }
-
     @Bean
     public IEmployeePersistencePort employeePersistencePort() {
         return new EmployeeRestaurantJpaAdapter(employeeRestaurantRepository, employeeRestaurantEntityMapper);
-    }
-
-    @Bean
-    public EmployeeValidator employeeValidator() {
-        return new EmployeeValidator();
     }
 
     @Bean
@@ -106,7 +72,7 @@ public class BeanConfiguration {
 
     @Bean
     public IRestaurantServicePort restaurantServicePort() {
-        return new RestaurantUseCase(restaurantPersistencePort(), userValidationPort(),
+        return new RestaurantUseCase(restaurantPersistencePort(),
                 restaurantValidator(), paginationValidator());
     }
 
