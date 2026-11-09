@@ -71,4 +71,21 @@ class OrderRestControllerTest {
         assertEquals(HttpStatus.OK, response.getStatusCode());
         verify(orderHandler).listOrdersByStatus(employeeId, "PENDING", 0, 10);
     }
+
+    @Test
+    void whenAssignOrderCalledWithTypedEmployeePrincipalThenPassesEmployeeUserIdToHandler() {
+        // HU13: EMPLOYEE assigns themselves to an order; employeeId comes from the typed principal
+        UUID employeeId = UUID.randomUUID();
+        UUID orderId = UUID.randomUUID();
+        AuthenticatedUser principal = new AuthenticatedUser(employeeId, "EMPLOYEE",
+                UUID.randomUUID());
+        OrderResponseDto expected = new OrderResponseDto();
+        when(orderHandler.assignOrder(orderId, employeeId)).thenReturn(expected);
+
+        ResponseEntity<OrderResponseDto> response = controller.assignOrder(principal, orderId);
+
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertEquals(expected, response.getBody());
+        verify(orderHandler).assignOrder(orderId, employeeId);
+    }
 }
