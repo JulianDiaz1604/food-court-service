@@ -1,6 +1,5 @@
 package com.pragma.foodcourt.domain.usecase;
 
-import com.pragma.foodcourt.domain.exception.InvalidOwnerException;
 import com.pragma.foodcourt.domain.exception.InvalidPaginationException;
 import com.pragma.foodcourt.domain.exception.InvalidRestaurantNameException;
 import com.pragma.foodcourt.domain.exception.NitAlreadyExistsException;
@@ -8,7 +7,6 @@ import com.pragma.foodcourt.domain.exception.RestaurantNotFoundException;
 import com.pragma.foodcourt.domain.model.PagedResult;
 import com.pragma.foodcourt.domain.model.Restaurant;
 import com.pragma.foodcourt.domain.spi.IRestaurantPersistencePort;
-import com.pragma.foodcourt.domain.spi.IUserValidationPort;
 import com.pragma.foodcourt.domain.validation.PaginationValidator;
 import com.pragma.foodcourt.domain.validation.RestaurantValidator;
 import org.junit.jupiter.api.BeforeEach;
@@ -37,32 +35,27 @@ class RestaurantUseCaseTest {
     @Mock
     private IRestaurantPersistencePort restaurantPersistencePort;
 
-    @Mock
-    private IUserValidationPort userValidationPort;
-
     private RestaurantUseCase restaurantUseCase;
     private Restaurant validRestaurant;
 
     @BeforeEach
     void setUp() {
         restaurantUseCase = new RestaurantUseCase(
-                restaurantPersistencePort, userValidationPort,
+                restaurantPersistencePort,
                 new RestaurantValidator(), new PaginationValidator());
         validRestaurant = new Restaurant(null, "Tablaito", "900123456",
                 "Calle 1 # 2-3", "+573005698325", "http://logo/tablaito.png", OWNER_ID);
     }
 
     @Test
-    @DisplayName("Persists the restaurant when data is valid and owner id belongs to an owner")
-    void shouldPersistRestaurantWhenOwnerIsValid() {
-        when(userValidationPort.isOwner(OWNER_ID)).thenReturn(true);
+    @DisplayName("Persists the restaurant when all fields are valid and ownerId is present (JI-S05: no outbound call)")
+    void shouldPersistRestaurantWhenDataIsValid() {
         when(restaurantPersistencePort.saveRestaurant(any(Restaurant.class)))
                 .thenAnswer(invocation -> invocation.getArgument(0));
 
         Restaurant result = restaurantUseCase.createRestaurant(validRestaurant);
 
         assertEquals("Tablaito", result.getName());
-        verify(userValidationPort).isOwner(OWNER_ID);
         verify(restaurantPersistencePort).saveRestaurant(validRestaurant);
     }
 
@@ -73,27 +66,27 @@ class RestaurantUseCaseTest {
 
         assertThrows(NitAlreadyExistsException.class,
                 () -> restaurantUseCase.createRestaurant(validRestaurant));
-        verify(userValidationPort, never()).isOwner(any(UUID.class));
         verify(restaurantPersistencePort, never()).saveRestaurant(any());
     }
 
     @Test
-    @DisplayName("Rejects when the owner id does not belong to an owner")
-    void shouldThrowWhenOwnerIdIsNotAnOwner() {
-        when(userValidationPort.isOwner(OWNER_ID)).thenReturn(false);
-
-        assertThrows(InvalidOwnerException.class, () -> restaurantUseCase.createRestaurant(validRestaurant));
-        verify(restaurantPersistencePort, never()).saveRestaurant(any());
-    }
-
-    @Test
-    @DisplayName("Does not call users-service when field validation already fails")
-    void shouldNotCallUserValidationWhenFieldValidationFails() {
+    @DisplayName("Rejects when field validation fails; persistence is never reached")
+    void shouldNotReachPersistenceWhenFieldValidationFails() {
         validRestaurant.setName("12345");
 
         assertThrows(InvalidRestaurantNameException.class,
                 () -> restaurantUseCase.createRestaurant(validRestaurant));
-        verify(userValidationPort, never()).isOwner(any(UUID.class));
+        verify(restaurantPersistencePort, never()).saveRestaurant(any());
+    }
+
+    @Test
+    @DisplayName("Rejects restaurant creation when ownerId is null (RequiredFieldException from validator)")
+    void shouldThrowWhenOwnerIdIsNull() {
+        validRestaurant.setOwnerId(null);
+
+        // RestaurantValidator.validateRequiredFields throws RequiredFieldException for null ownerId
+        assertThrows(com.pragma.foodcourt.domain.exception.RequiredFieldException.class,
+                () -> restaurantUseCase.createRestaurant(validRestaurant));
         verify(restaurantPersistencePort, never()).saveRestaurant(any());
     }
 
