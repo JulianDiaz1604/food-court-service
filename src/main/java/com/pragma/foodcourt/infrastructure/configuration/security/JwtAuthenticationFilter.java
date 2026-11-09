@@ -14,10 +14,12 @@ import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.UUID;
 
 /**
- * Validates the Bearer token on each request and sets the authenticated user id (principal) plus the
- * single ROLE_ authority derived from the token, so the authorization rules can gate endpoints.
+ * Validates the Bearer token on each request and sets a typed {@link AuthenticatedUser} principal
+ * (userId, role, optional restaurantId) plus the single ROLE_ authority derived from the token,
+ * so authorization rules can gate endpoints.
  */
 @RequiredArgsConstructor
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
@@ -36,11 +38,14 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         if (token != null
                 && jwtTokenValidator.isTokenValid(token)
                 && SecurityContextHolder.getContext().getAuthentication() == null) {
-            String userId = jwtTokenValidator.extractUserId(token).toString();
+            UUID userId = jwtTokenValidator.extractUserId(token);
             String role = jwtTokenValidator.extractRole(token);
+            UUID restaurantId = jwtTokenValidator.extractRestaurantId(token);
+
+            AuthenticatedUser authenticatedUser = new AuthenticatedUser(userId, role, restaurantId);
 
             UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
-                    userId, null, List.of(new SimpleGrantedAuthority(ROLE_PREFIX + role)));
+                    authenticatedUser, null, List.of(new SimpleGrantedAuthority(ROLE_PREFIX + role)));
             authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
             SecurityContextHolder.getContext().setAuthentication(authentication);
         }

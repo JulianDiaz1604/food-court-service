@@ -7,6 +7,7 @@ import com.pragma.foodcourt.application.dto.response.DishListItemResponseDto;
 import com.pragma.foodcourt.application.dto.response.DishResponseDto;
 import com.pragma.foodcourt.application.dto.response.PageResponseDto;
 import com.pragma.foodcourt.application.handler.IDishHandler;
+import com.pragma.foodcourt.infrastructure.configuration.security.AuthenticatedUser;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
@@ -44,10 +45,10 @@ public class DishRestController {
     })
     @PostMapping
     public ResponseEntity<DishResponseDto> createDish(
-            @AuthenticationPrincipal String ownerId,
+            @AuthenticationPrincipal AuthenticatedUser authenticatedUser,
             @RequestBody CreateDishRequestDto request) {
         return new ResponseEntity<>(
-                dishHandler.createDish(request, UUID.fromString(ownerId)), HttpStatus.CREATED);
+                dishHandler.createDish(request, authenticatedUser.userId()), HttpStatus.CREATED);
     }
 
     @Operation(summary = "Update a dish (only price and description; owner taken from the token)")
@@ -61,10 +62,10 @@ public class DishRestController {
     @PatchMapping("/{dishId}")
     public ResponseEntity<DishResponseDto> updateDish(
             @PathVariable UUID dishId,
-            @AuthenticationPrincipal String ownerId,
+            @AuthenticationPrincipal AuthenticatedUser authenticatedUser,
             @RequestBody UpdateDishRequestDto request) {
         return new ResponseEntity<>(
-                dishHandler.updateDish(dishId, request, UUID.fromString(ownerId)), HttpStatus.OK);
+                dishHandler.updateDish(dishId, request, authenticatedUser.userId()), HttpStatus.OK);
     }
 
     @Operation(summary = "Enable or disable a dish (owner only; owner taken from the token)")
@@ -78,10 +79,10 @@ public class DishRestController {
     @PatchMapping("/{dishId}/status")
     public ResponseEntity<DishResponseDto> setDishStatus(
             @PathVariable UUID dishId,
-            @AuthenticationPrincipal String ownerId,
+            @AuthenticationPrincipal AuthenticatedUser authenticatedUser,
             @RequestBody UpdateDishStatusRequestDto request) {
         return new ResponseEntity<>(
-                dishHandler.setDishStatus(dishId, request, UUID.fromString(ownerId)), HttpStatus.OK);
+                dishHandler.setDishStatus(dishId, request, authenticatedUser.userId()), HttpStatus.OK);
     }
 
     @Operation(summary = "List a restaurant's active menu, paginated and filterable by category (client only)")

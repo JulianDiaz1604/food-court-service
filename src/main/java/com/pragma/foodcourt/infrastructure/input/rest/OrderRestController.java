@@ -4,6 +4,7 @@ import com.pragma.foodcourt.application.dto.request.CreateOrderRequestDto;
 import com.pragma.foodcourt.application.dto.response.OrderResponseDto;
 import com.pragma.foodcourt.application.dto.response.PageResponseDto;
 import com.pragma.foodcourt.application.handler.IOrderHandler;
+import com.pragma.foodcourt.infrastructure.configuration.security.AuthenticatedUser;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
@@ -18,8 +19,6 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
-
-import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/v1/orders")
@@ -40,10 +39,10 @@ public class OrderRestController {
     })
     @PostMapping
     public ResponseEntity<OrderResponseDto> placeOrder(
-            @AuthenticationPrincipal String clientId,
+            @AuthenticationPrincipal AuthenticatedUser authenticatedUser,
             @RequestBody CreateOrderRequestDto request) {
         return new ResponseEntity<>(
-                orderHandler.placeOrder(request, UUID.fromString(clientId)), HttpStatus.CREATED);
+                orderHandler.placeOrder(request, authenticatedUser.userId()), HttpStatus.CREATED);
     }
 
     @Operation(summary = "List the orders of the employee's restaurant filtered by status, paginated "
@@ -57,11 +56,11 @@ public class OrderRestController {
     })
     @GetMapping
     public ResponseEntity<PageResponseDto<OrderResponseDto>> listOrdersByStatus(
-            @AuthenticationPrincipal String employeeId,
+            @AuthenticationPrincipal AuthenticatedUser authenticatedUser,
             @RequestParam String status,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
         return ResponseEntity.ok(
-                orderHandler.listOrdersByStatus(UUID.fromString(employeeId), status, page, size));
+                orderHandler.listOrdersByStatus(authenticatedUser.userId(), status, page, size));
     }
 }

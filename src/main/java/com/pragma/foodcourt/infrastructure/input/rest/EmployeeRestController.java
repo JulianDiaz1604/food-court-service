@@ -3,6 +3,7 @@ package com.pragma.foodcourt.infrastructure.input.rest;
 import com.pragma.foodcourt.application.dto.request.CreateEmployeeRequestDto;
 import com.pragma.foodcourt.application.dto.response.EmployeeResponseDto;
 import com.pragma.foodcourt.application.handler.IEmployeeHandler;
+import com.pragma.foodcourt.infrastructure.configuration.security.AuthenticatedUser;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
@@ -39,10 +40,10 @@ public class EmployeeRestController {
     @PostMapping
     public ResponseEntity<EmployeeResponseDto> createEmployee(
             @PathVariable UUID restaurantId,
-            @AuthenticationPrincipal String ownerId,
+            @AuthenticationPrincipal AuthenticatedUser authenticatedUser,
             @RequestBody CreateEmployeeRequestDto request) {
         return new ResponseEntity<>(
-                employeeHandler.createEmployee(request, restaurantId, UUID.fromString(ownerId)),
+                employeeHandler.createEmployee(request, restaurantId, authenticatedUser.userId()),
                 HttpStatus.CREATED);
     }
 }
