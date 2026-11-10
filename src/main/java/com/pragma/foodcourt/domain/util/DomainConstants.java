@@ -69,4 +69,16 @@ public final class DomainConstants {
             "The order does not belong to the employee's restaurant";
     public static final String ORDER_NOT_ASSIGNABLE_MESSAGE =
             "Only orders in PENDING status can be assigned and moved to preparation";
+
+    public static final String ORDER_NOT_IN_PREPARATION_MESSAGE =
+            "Only orders in IN_PREPARATION status can be marked as ready";
+
+    public static final String USER_SERVICE_UNAVAILABLE_MESSAGE =
+            "The users service is currently unavailable; please try again later";
+
+    public static final String MESSAGING_SERVICE_UNAVAILABLE_MESSAGE =
+            "The messaging service is currently unavailable; please try again later";
+
+    public static final String CLIENT_NOT_FOUND_MESSAGE =
+            "The client associated with this order was not found";
 }

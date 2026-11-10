@@ -4,6 +4,7 @@ import com.pragma.foodcourt.domain.exception.EmptyOrderException;
 import com.pragma.foodcourt.domain.exception.InvalidOrderStatusException;
 import com.pragma.foodcourt.domain.exception.InvalidQuantityException;
 import com.pragma.foodcourt.domain.exception.OrderNotAssignableException;
+import com.pragma.foodcourt.domain.exception.OrderNotInPreparationException;
 import com.pragma.foodcourt.domain.exception.RequiredFieldException;
 import com.pragma.foodcourt.domain.model.Order;
 import com.pragma.foodcourt.domain.model.OrderItem;
@@ -128,5 +129,24 @@ class OrderValidatorTest {
 
         assertThrows(OrderNotAssignableException.class,
                 () -> orderValidator.validateAssignable(order));
+    }
+
+    @Test
+    @DisplayName("Accepts the ready transition when the order is in IN_PREPARATION status")
+    void shouldAcceptReadyTransitionWhenOrderIsInPreparation() {
+        Order order = new Order(null, null, RESTAURANT_ID, OrderStatus.IN_PREPARATION, null,
+                List.of(new OrderItem(DISH_ID, 1)));
+
+        assertDoesNotThrow(() -> orderValidator.validateReadyTransition(order));
+    }
+
+    @Test
+    @DisplayName("Rejects the ready transition when the order is not in IN_PREPARATION status")
+    void shouldThrowWhenReadyTransitionOnNonPreparationOrder() {
+        Order order = new Order(null, null, RESTAURANT_ID, OrderStatus.PENDING, null,
+                List.of(new OrderItem(DISH_ID, 1)));
+
+        assertThrows(OrderNotInPreparationException.class,
+                () -> orderValidator.validateReadyTransition(order));
     }
 }

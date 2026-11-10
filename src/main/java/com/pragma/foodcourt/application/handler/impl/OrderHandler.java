@@ -6,7 +6,9 @@ import com.pragma.foodcourt.application.dto.response.PageResponseDto;
 import com.pragma.foodcourt.application.handler.IOrderHandler;
 import com.pragma.foodcourt.application.mapper.IOrderRequestMapper;
 import com.pragma.foodcourt.application.mapper.IOrderResponseMapper;
-import com.pragma.foodcourt.domain.api.IOrderServicePort;
+import com.pragma.foodcourt.domain.api.IOrderQueryServicePort;
+import com.pragma.foodcourt.domain.api.IOrderStatusServicePort;
+import com.pragma.foodcourt.domain.api.IPlaceOrderServicePort;
 import com.pragma.foodcourt.domain.model.Order;
 import com.pragma.foodcourt.domain.model.PagedResult;
 import lombok.RequiredArgsConstructor;
@@ -20,13 +22,15 @@ import java.util.UUID;
 @Transactional
 public class OrderHandler implements IOrderHandler {
 
-    private final IOrderServicePort orderServicePort;
+    private final IPlaceOrderServicePort placeOrderServicePort;
+    private final IOrderQueryServicePort orderQueryServicePort;
+    private final IOrderStatusServicePort orderStatusServicePort;
     private final IOrderRequestMapper orderRequestMapper;
     private final IOrderResponseMapper orderResponseMapper;
 
     @Override
     public OrderResponseDto placeOrder(CreateOrderRequestDto request, UUID clientId) {
-        Order placedOrder = orderServicePort.placeOrder(orderRequestMapper.toOrder(request), clientId);
+        Order placedOrder = placeOrderServicePort.placeOrder(orderRequestMapper.toOrder(request), clientId);
         return orderResponseMapper.toResponse(placedOrder);
     }
 
@@ -35,7 +39,7 @@ public class OrderHandler implements IOrderHandler {
     public PageResponseDto<OrderResponseDto> listOrdersByStatus(
             UUID employeeId, String status, int page, int size) {
         PagedResult<Order> result =
-                orderServicePort.listOrdersByStatus(employeeId, status, page, size);
+                orderQueryServicePort.listOrdersByStatus(employeeId, status, page, size);
         return new PageResponseDto<>(
                 orderResponseMapper.toResponseList(result.getContent()),
                 result.getPage(),
@@ -46,7 +50,13 @@ public class OrderHandler implements IOrderHandler {
 
     @Override
     public OrderResponseDto assignOrder(UUID orderId, UUID employeeId) {
-        Order assignedOrder = orderServicePort.assignOrder(orderId, employeeId);
+        Order assignedOrder = orderStatusServicePort.assignOrder(orderId, employeeId);
         return orderResponseMapper.toResponse(assignedOrder);
+    }
+
+    @Override
+    public OrderResponseDto markOrderReady(UUID orderId, UUID employeeId) {
+        Order readyOrder = orderStatusServicePort.markOrderReady(orderId, employeeId);
+        return orderResponseMapper.toResponse(readyOrder);
     }
 }

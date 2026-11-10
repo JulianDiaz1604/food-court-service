@@ -2,20 +2,30 @@ package com.pragma.foodcourt.infrastructure.configuration;
 
 import com.pragma.foodcourt.domain.api.IDishServicePort;
 import com.pragma.foodcourt.domain.api.IEmployeeServicePort;
-import com.pragma.foodcourt.domain.api.IOrderServicePort;
+import com.pragma.foodcourt.domain.api.IOrderQueryServicePort;
+import com.pragma.foodcourt.domain.api.IOrderStatusServicePort;
+import com.pragma.foodcourt.domain.api.IPlaceOrderServicePort;
 import com.pragma.foodcourt.domain.api.IRestaurantServicePort;
 import com.pragma.foodcourt.domain.spi.IDishPersistencePort;
 import com.pragma.foodcourt.domain.spi.IEmployeePersistencePort;
 import com.pragma.foodcourt.domain.spi.IOrderPersistencePort;
+import com.pragma.foodcourt.domain.spi.IOrderReadyNotificationPort;
 import com.pragma.foodcourt.domain.spi.IRestaurantPersistencePort;
+import com.pragma.foodcourt.domain.spi.IUserClientPort;
 import com.pragma.foodcourt.domain.usecase.DishUseCase;
+import com.pragma.foodcourt.domain.service.EmployeeRestaurantResolver;
 import com.pragma.foodcourt.domain.usecase.EmployeeUseCase;
-import com.pragma.foodcourt.domain.usecase.OrderUseCase;
+import com.pragma.foodcourt.domain.usecase.OrderQueryUseCase;
+import com.pragma.foodcourt.domain.usecase.OrderStatusUseCase;
+import com.pragma.foodcourt.domain.usecase.PlaceOrderUseCase;
 import com.pragma.foodcourt.domain.usecase.RestaurantUseCase;
 import com.pragma.foodcourt.domain.validation.DishValidator;
 import com.pragma.foodcourt.domain.validation.OrderValidator;
 import com.pragma.foodcourt.domain.validation.PaginationValidator;
 import com.pragma.foodcourt.domain.validation.RestaurantValidator;
+import com.pragma.foodcourt.infrastructure.out.client.AuthorizationForwardingInterceptor;
+import com.pragma.foodcourt.infrastructure.out.client.MessagingRestClientAdapter;
+import com.pragma.foodcourt.infrastructure.out.client.UsersRestClientAdapter;
 import com.pragma.foodcourt.infrastructure.out.jpa.adapter.DishJpaAdapter;
 import com.pragma.foodcourt.infrastructure.out.jpa.adapter.EmployeeRestaurantJpaAdapter;
 import com.pragma.foodcourt.infrastructure.out.jpa.adapter.OrderJpaAdapter;
@@ -29,8 +39,10 @@ import com.pragma.foodcourt.infrastructure.out.jpa.repository.IEmployeeRestauran
 import com.pragma.foodcourt.infrastructure.out.jpa.repository.IOrderRepository;
 import com.pragma.foodcourt.infrastructure.out.jpa.repository.IRestaurantRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.web.client.RestClient;
 
 @Configuration
 @RequiredArgsConstructor
@@ -102,9 +114,65 @@ public class BeanConfiguration {
         return new OrderValidator();
     }
 
+    // ---- cross-service HTTP client beans ----
+
     @Bean
-    public IOrderServicePort orderServicePort() {
-        return new OrderUseCase(orderPersistencePort(), restaurantPersistencePort(),
-                dishPersistencePort(), employeePersistencePort(), orderValidator(), paginationValidator());
+    public AuthorizationForwardingInterceptor authorizationForwardingInterceptor() {
+        return new AuthorizationForwardingInterceptor();
+    }
+
+    @Bean
+    public RestClient usersRestClient(
+            @Value("${users-service.base-url}") String baseUrl,
+            AuthorizationForwardingInterceptor authorizationForwardingInterceptor) {
+        return RestClient.builder()
+                .baseUrl(baseUrl)
+                .requestInterceptor(authorizationForwardingInterceptor)
+                .build();
+    }
+
+    @Bean
+    public RestClient messagingRestClient(
+            @Value("${messaging-service.base-url}") String baseUrl,
+            AuthorizationForwardingInterceptor authorizationForwardingInterceptor) {
+        return RestClient.builder()
+                .baseUrl(baseUrl)
+                .requestInterceptor(authorizationForwardingInterceptor)
+                .build();
+    }
+
+    @Bean
+    public IUserClientPort userClientPort(RestClient usersRestClient) {
+        return new UsersRestClientAdapter(usersRestClient);
+    }
+
+    @Bean
+    public IOrderReadyNotificationPort orderReadyNotificationPort(RestClient messagingRestClient) {
+        return new MessagingRestClientAdapter(messagingRestClient);
+    }
+
+    @Bean
+    public EmployeeRestaurantResolver employeeRestaurantResolver() {
+        return new EmployeeRestaurantResolver(employeePersistencePort());
+    }
+
+    @Bean
+    public IPlaceOrderServicePort placeOrderServicePort() {
+        return new PlaceOrderUseCase(orderPersistencePort(), restaurantPersistencePort(),
+                dishPersistencePort(), orderValidator());
+    }
+
+    @Bean
+    public IOrderQueryServicePort orderQueryServicePort() {
+        return new OrderQueryUseCase(orderPersistencePort(), orderValidator(),
+                paginationValidator(), employeeRestaurantResolver());
+    }
+
+    @Bean
+    public IOrderStatusServicePort orderStatusServicePort(
+            IUserClientPort userClientPort,
+            IOrderReadyNotificationPort orderReadyNotificationPort) {
+        return new OrderStatusUseCase(orderPersistencePort(), orderValidator(),
+                userClientPort, orderReadyNotificationPort, employeeRestaurantResolver());
     }
 }

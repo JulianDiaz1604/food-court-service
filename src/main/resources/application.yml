@@ -16,6 +16,9 @@ spring:
 users-service:
   base-url: ${USERS_SERVICE_URL:http://localhost:8081}
 
+messaging-service:
+  base-url: ${MESSAGING_SERVICE_URL:http://localhost:8083}
+
 jwt:
   # Shared HS256 secret — MUST match users-service so this service can verify its tokens.
   secret: ${JWT_SECRET:change-me-plazoleta-shared-jwt-secret-key-32bytes-min}
