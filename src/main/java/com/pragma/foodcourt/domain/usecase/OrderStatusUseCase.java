@@ -11,6 +11,7 @@ import com.pragma.foodcourt.domain.model.UserContact;
 import com.pragma.foodcourt.domain.spi.IOrderDeliveryPinPort;
 import com.pragma.foodcourt.domain.spi.IOrderPersistencePort;
 import com.pragma.foodcourt.domain.spi.IOrderReadyNotificationPort;
+import com.pragma.foodcourt.domain.spi.IOrderTraceabilityPort;
 import com.pragma.foodcourt.domain.spi.IUserClientPort;
 import com.pragma.foodcourt.domain.validation.OrderValidator;
 
@@ -23,6 +24,7 @@ public class OrderStatusUseCase implements IOrderStatusServicePort {
     private final IUserClientPort userClientPort;
     private final IOrderReadyNotificationPort orderReadyNotificationPort;
     private final IOrderDeliveryPinPort orderDeliveryPinPort;
+    private final IOrderTraceabilityPort orderTraceabilityPort;
     private final EmployeeRestaurantResolver employeeRestaurantResolver;
 
     public OrderStatusUseCase(IOrderPersistencePort orderPersistencePort,
@@ -30,12 +32,14 @@ public class OrderStatusUseCase implements IOrderStatusServicePort {
                               IUserClientPort userClientPort,
                               IOrderReadyNotificationPort orderReadyNotificationPort,
                               IOrderDeliveryPinPort orderDeliveryPinPort,
+                              IOrderTraceabilityPort orderTraceabilityPort,
                               EmployeeRestaurantResolver employeeRestaurantResolver) {
         this.orderPersistencePort = orderPersistencePort;
         this.orderValidator = orderValidator;
         this.userClientPort = userClientPort;
         this.orderReadyNotificationPort = orderReadyNotificationPort;
         this.orderDeliveryPinPort = orderDeliveryPinPort;
+        this.orderTraceabilityPort = orderTraceabilityPort;
         this.employeeRestaurantResolver = employeeRestaurantResolver;
     }
 
@@ -43,9 +47,13 @@ public class OrderStatusUseCase implements IOrderStatusServicePort {
     public Order assignOrder(UUID orderId, UUID employeeId) {
         Order order = loadOrderForEmployee(orderId, employeeId);
         orderValidator.validateAssignable(order);
+        OrderStatus previousStatus = order.getStatus();
         order.setAssignedEmployeeId(employeeId);
         order.setStatus(OrderStatus.IN_PREPARATION);
-        return orderPersistencePort.saveOrder(order);
+        Order savedOrder = orderPersistencePort.saveOrder(order);
+        orderTraceabilityPort.recordStatusChange(savedOrder.getId(), savedOrder.getClientId(),
+                previousStatus, OrderStatus.IN_PREPARATION, employeeId);
+        return savedOrder;
     }
 
     /**
@@ -60,10 +68,14 @@ public class OrderStatusUseCase implements IOrderStatusServicePort {
     public Order markOrderReady(UUID orderId, UUID employeeId) {
         Order order = loadOrderForEmployee(orderId, employeeId);
         orderValidator.validateReadyTransition(order);
+        OrderStatus previousStatus = order.getStatus();
         UserContact contact = userClientPort.getUserContactById(order.getClientId());
         orderReadyNotificationPort.notifyOrderReady(order.getId(), contact.getPhone(), contact.getName());
         order.setStatus(OrderStatus.READY);
-        return orderPersistencePort.saveOrder(order);
+        Order savedOrder = orderPersistencePort.saveOrder(order);
+        orderTraceabilityPort.recordStatusChange(savedOrder.getId(), savedOrder.getClientId(),
+                previousStatus, OrderStatus.READY, employeeId);
+        return savedOrder;
     }
 
     /**
@@ -80,8 +92,12 @@ public class OrderStatusUseCase implements IOrderStatusServicePort {
         if (!orderDeliveryPinPort.isPinValid(orderId, pin)) {
             throw new InvalidDeliveryPinException();
         }
+        OrderStatus previousStatus = order.getStatus();
         order.setStatus(OrderStatus.DELIVERED);
-        return orderPersistencePort.saveOrder(order);
+        Order savedOrder = orderPersistencePort.saveOrder(order);
+        orderTraceabilityPort.recordStatusChange(savedOrder.getId(), savedOrder.getClientId(),
+                previousStatus, OrderStatus.DELIVERED, employeeId);
+        return savedOrder;
     }
 
     private Order loadOrderForEmployee(UUID orderId, UUID employeeId) {

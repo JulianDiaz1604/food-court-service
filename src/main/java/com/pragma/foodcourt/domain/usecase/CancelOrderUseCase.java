@@ -6,6 +6,7 @@ import com.pragma.foodcourt.domain.exception.OrderNotFromClientException;
 import com.pragma.foodcourt.domain.model.Order;
 import com.pragma.foodcourt.domain.model.OrderStatus;
 import com.pragma.foodcourt.domain.spi.IOrderPersistencePort;
+import com.pragma.foodcourt.domain.spi.IOrderTraceabilityPort;
 import com.pragma.foodcourt.domain.validation.OrderValidator;
 
 import java.util.UUID;
@@ -14,11 +15,14 @@ public class CancelOrderUseCase implements ICancelOrderServicePort {
 
     private final IOrderPersistencePort orderPersistencePort;
     private final OrderValidator orderValidator;
+    private final IOrderTraceabilityPort orderTraceabilityPort;
 
     public CancelOrderUseCase(IOrderPersistencePort orderPersistencePort,
-                              OrderValidator orderValidator) {
+                              OrderValidator orderValidator,
+                              IOrderTraceabilityPort orderTraceabilityPort) {
         this.orderPersistencePort = orderPersistencePort;
         this.orderValidator = orderValidator;
+        this.orderTraceabilityPort = orderTraceabilityPort;
     }
 
     /**
@@ -37,7 +41,11 @@ public class CancelOrderUseCase implements ICancelOrderServicePort {
             throw new OrderNotFromClientException();
         }
         orderValidator.validateCancellable(order);
+        OrderStatus previousStatus = order.getStatus();
         order.setStatus(OrderStatus.CANCELLED);
-        return orderPersistencePort.saveOrder(order);
+        Order savedOrder = orderPersistencePort.saveOrder(order);
+        orderTraceabilityPort.recordStatusChange(savedOrder.getId(), savedOrder.getClientId(),
+                previousStatus, OrderStatus.CANCELLED, null);
+        return savedOrder;
     }
 }

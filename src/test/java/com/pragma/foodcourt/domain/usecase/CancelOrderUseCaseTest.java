@@ -7,6 +7,7 @@ import com.pragma.foodcourt.domain.model.Order;
 import com.pragma.foodcourt.domain.model.OrderItem;
 import com.pragma.foodcourt.domain.model.OrderStatus;
 import com.pragma.foodcourt.domain.spi.IOrderPersistencePort;
+import com.pragma.foodcourt.domain.spi.IOrderTraceabilityPort;
 import com.pragma.foodcourt.domain.validation.OrderValidator;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -24,6 +25,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -39,11 +41,15 @@ class CancelOrderUseCaseTest {
     @Mock
     private IOrderPersistencePort orderPersistencePort;
 
+    @Mock
+    private IOrderTraceabilityPort orderTraceabilityPort;
+
     private CancelOrderUseCase cancelOrderUseCase;
 
     @BeforeEach
     void setUp() {
-        cancelOrderUseCase = new CancelOrderUseCase(orderPersistencePort, new OrderValidator());
+        cancelOrderUseCase = new CancelOrderUseCase(orderPersistencePort, new OrderValidator(),
+                orderTraceabilityPort);
     }
 
     private Order orderOwnedBy(UUID clientId, OrderStatus status) {
@@ -65,6 +71,8 @@ class CancelOrderUseCaseTest {
         verify(orderPersistencePort).saveOrder(captor.capture());
         assertEquals(OrderStatus.CANCELLED, captor.getValue().getStatus());
         assertSame(captor.getValue(), result);
+        verify(orderTraceabilityPort).recordStatusChange(
+                eq(ORDER_ID), eq(CLIENT_ID), eq(OrderStatus.PENDING), eq(OrderStatus.CANCELLED), any());
     }
 
     @Test
