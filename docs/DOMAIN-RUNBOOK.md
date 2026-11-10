@@ -462,3 +462,60 @@ eventually reaches the correct state.
 | `OrderNotAssignableException` | Only orders in PENDING status can be assigned and moved to preparation | 409 |
 | (unauthenticated request) | Authentication is required | 401 |
 | (authenticated, non-employee role) | (Spring Security forbidden) | 403 |
+
+---
+
+## HU15 — Deliver order (mark as delivered)
+
+- **Role:** Employee
+- **Endpoint:** `PATCH /api/v1/orders/{orderId}/deliver` with body `{ "pin": "123456" }`
+- **Use case:** `OrderStatusUseCase.markOrderDelivered`
+- **Validators:**
+  - `OrderValidator.validateDeliverTransition` (pure state-transition rule: order must be in `READY`).
+  - `OrderValidator.validateDeliveryPin` (pure required-field rule: PIN must not be null/blank).
+- **Persistence ports:**
+  - `IOrderPersistencePort.findOrderById` → `OrderJpaAdapter` (loads the target order).
+  - `IEmployeePersistencePort.findRestaurantIdByEmployee` → `EmployeeRestaurantJpaAdapter`.
+  - `IOrderPersistencePort.saveOrder` → `OrderJpaAdapter` (persists the DELIVERED status).
+- **Cross-service port (new):**
+  - `IOrderDeliveryPinPort.isPinValid` → `MessagingRestClientAdapter`
+    (`POST /api/v1/notifications/{orderId}/validate` on messaging-service with `{pin}`;
+    200 → valid, 403 → invalid, any other response → `MessagingServiceUnavailableException`).
+
+### Business rules / invariants
+- **Criterion 1 — only `READY` orders may be delivered.** Any other status raises
+  `OrderNotReadyException` (409). The messaging-service is **not** called until the state and PIN
+  presence are validated.
+- **Criterion 2 — `DELIVERED` is terminal.** No lifecycle transition uses `DELIVERED` as a source
+  state, so once delivered an order cannot move to any other status; each transition guards its own
+  source state (`PENDING → IN_PREPARATION`, `IN_PREPARATION → READY`, `READY → DELIVERED`).
+- **Criterion 3 — PIN required and must match.** The employee must digit the security PIN the client
+  received by SMS (HU14). A missing/blank PIN raises `RequiredFieldException` (400); a mismatch
+  (messaging-service answers 403) raises `InvalidDeliveryPinException` (403).
+- An employee may deliver an order **only if it belongs to their restaurant** (standing rule shared
+  with HU12/HU13/HU14): otherwise `OrderNotFromEmployeeRestaurantException` (403).
+- If the order does not exist, `OrderNotFoundException` (404); if the employee is not linked to any
+  restaurant, `EmployeeNotLinkedToRestaurantException` (404).
+- The employee is taken from the JWT (`@AuthenticationPrincipal`), never from the body.
+- Authorization: only the **EMPLOYEE** role may deliver orders
+  (`PATCH /api/v1/orders/*/deliver` → EMPLOYEE rule in `SecurityConfig`).
+
+### Execution order
+1. Load order → guard (not found, wrong restaurant).
+2. Validate state (`READY`) and PIN presence — **before** any cross-service call.
+3. Validate the PIN via `IOrderDeliveryPinPort`; a mismatch aborts without persisting.
+4. **Only after a valid PIN**, set `status = DELIVERED` and persist. If messaging-service is
+   unavailable the order stays in `READY` and the caller may retry.
+
+### Exceptions
+| Exception | Message | HTTP |
+|-----------|---------|------|
+| `OrderNotFoundException` | The order does not exist | 404 |
+| `EmployeeNotLinkedToRestaurantException` | The employee is not assigned to any restaurant | 404 |
+| `OrderNotFromEmployeeRestaurantException` | The order does not belong to the employee's restaurant | 403 |
+| `RequiredFieldException` | All fields are required | 400 |
+| `InvalidDeliveryPinException` | The security PIN does not match the one sent to the client | 403 |
+| `OrderNotReadyException` | Only orders in READY status can be marked as delivered | 409 |
+| `MessagingServiceUnavailableException` | The messaging service is currently unavailable; please try again later | 502 |
+| (unauthenticated request) | Authentication is required | 401 |
+| (authenticated, non-employee role) | (Spring Security forbidden) | 403 |

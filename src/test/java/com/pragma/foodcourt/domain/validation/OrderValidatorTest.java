@@ -5,6 +5,7 @@ import com.pragma.foodcourt.domain.exception.InvalidOrderStatusException;
 import com.pragma.foodcourt.domain.exception.InvalidQuantityException;
 import com.pragma.foodcourt.domain.exception.OrderNotAssignableException;
 import com.pragma.foodcourt.domain.exception.OrderNotInPreparationException;
+import com.pragma.foodcourt.domain.exception.OrderNotReadyException;
 import com.pragma.foodcourt.domain.exception.RequiredFieldException;
 import com.pragma.foodcourt.domain.model.Order;
 import com.pragma.foodcourt.domain.model.OrderItem;
@@ -148,5 +149,37 @@ class OrderValidatorTest {
 
         assertThrows(OrderNotInPreparationException.class,
                 () -> orderValidator.validateReadyTransition(order));
+    }
+
+    @Test
+    @DisplayName("Accepts the deliver transition when the order is in READY status")
+    void shouldAcceptDeliverTransitionWhenOrderIsReady() {
+        Order order = new Order(null, null, RESTAURANT_ID, OrderStatus.READY, null,
+                List.of(new OrderItem(DISH_ID, 1)));
+
+        assertDoesNotThrow(() -> orderValidator.validateDeliverTransition(order));
+    }
+
+    @Test
+    @DisplayName("Rejects the deliver transition when the order is not in READY status")
+    void shouldThrowWhenDeliverTransitionOnNonReadyOrder() {
+        Order order = new Order(null, null, RESTAURANT_ID, OrderStatus.IN_PREPARATION, null,
+                List.of(new OrderItem(DISH_ID, 1)));
+
+        assertThrows(OrderNotReadyException.class,
+                () -> orderValidator.validateDeliverTransition(order));
+    }
+
+    @Test
+    @DisplayName("Accepts a non-blank delivery PIN")
+    void shouldAcceptNonBlankDeliveryPin() {
+        assertDoesNotThrow(() -> orderValidator.validateDeliveryPin("123456"));
+    }
+
+    @Test
+    @DisplayName("Rejects a null or blank delivery PIN")
+    void shouldThrowWhenDeliveryPinIsBlank() {
+        assertThrows(RequiredFieldException.class, () -> orderValidator.validateDeliveryPin(null));
+        assertThrows(RequiredFieldException.class, () -> orderValidator.validateDeliveryPin("  "));
     }
 }

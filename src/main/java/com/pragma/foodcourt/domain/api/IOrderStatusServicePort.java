@@ -8,4 +8,6 @@ public interface IOrderStatusServicePort {
     Order assignOrder(UUID orderId, UUID employeeId);
 
     Order markOrderReady(UUID orderId, UUID employeeId);
+
+    Order markOrderDelivered(UUID orderId, UUID employeeId, String pin);
 }

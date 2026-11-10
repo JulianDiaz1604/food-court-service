@@ -1,6 +1,7 @@
 package com.pragma.foodcourt.infrastructure.input.rest;
 
 import com.pragma.foodcourt.application.dto.request.CreateOrderRequestDto;
+import com.pragma.foodcourt.application.dto.request.DeliverOrderRequestDto;
 import com.pragma.foodcourt.application.dto.response.OrderResponseDto;
 import com.pragma.foodcourt.application.dto.response.PageResponseDto;
 import com.pragma.foodcourt.application.handler.IOrderHandler;
@@ -87,5 +88,25 @@ class OrderRestControllerTest {
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertEquals(expected, response.getBody());
         verify(orderHandler).assignOrder(orderId, employeeId);
+    }
+
+    @Test
+    void whenMarkOrderDeliveredCalledThenPassesEmployeeUserIdAndPinToHandler() {
+        // HU15: EMPLOYEE delivers an order; employeeId comes from the typed principal and the PIN
+        // from the request body.
+        UUID employeeId = UUID.randomUUID();
+        UUID orderId = UUID.randomUUID();
+        AuthenticatedUser principal = new AuthenticatedUser(employeeId, "EMPLOYEE",
+                UUID.randomUUID());
+        DeliverOrderRequestDto request = new DeliverOrderRequestDto("123456");
+        OrderResponseDto expected = new OrderResponseDto();
+        when(orderHandler.markOrderDelivered(orderId, employeeId, "123456")).thenReturn(expected);
+
+        ResponseEntity<OrderResponseDto> response =
+                controller.markOrderDelivered(principal, orderId, request);
+
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertEquals(expected, response.getBody());
+        verify(orderHandler).markOrderDelivered(orderId, employeeId, "123456");
     }
 }

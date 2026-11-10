@@ -59,4 +59,10 @@ public class OrderHandler implements IOrderHandler {
         Order readyOrder = orderStatusServicePort.markOrderReady(orderId, employeeId);
         return orderResponseMapper.toResponse(readyOrder);
     }
+
+    @Override
+    public OrderResponseDto markOrderDelivered(UUID orderId, UUID employeeId, String pin) {
+        Order deliveredOrder = orderStatusServicePort.markOrderDelivered(orderId, employeeId, pin);
+        return orderResponseMapper.toResponse(deliveredOrder);
+    }
 }

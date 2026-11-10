@@ -15,4 +15,6 @@ public interface IOrderHandler {
     OrderResponseDto assignOrder(UUID orderId, UUID employeeId);
 
     OrderResponseDto markOrderReady(UUID orderId, UUID employeeId);
+
+    OrderResponseDto markOrderDelivered(UUID orderId, UUID employeeId, String pin);
 }

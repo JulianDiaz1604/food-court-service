@@ -1,6 +1,7 @@
 package com.pragma.foodcourt.infrastructure.input.rest;
 
 import com.pragma.foodcourt.application.dto.request.CreateOrderRequestDto;
+import com.pragma.foodcourt.application.dto.request.DeliverOrderRequestDto;
 import com.pragma.foodcourt.application.dto.response.OrderResponseDto;
 import com.pragma.foodcourt.application.dto.response.PageResponseDto;
 import com.pragma.foodcourt.application.handler.IOrderHandler;
@@ -103,5 +104,28 @@ public class OrderRestController {
             @AuthenticationPrincipal AuthenticatedUser authenticatedUser,
             @PathVariable UUID orderId) {
         return ResponseEntity.ok(orderHandler.markOrderReady(orderId, authenticatedUser.userId()));
+    }
+
+    @Operation(summary = "Mark a READY order as DELIVERED after validating the client's security PIN "
+            + "(employee only; the employee is taken from the authenticated token)")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Order marked as DELIVERED"),
+            @ApiResponse(responseCode = "400", description = "The security PIN is missing"),
+            @ApiResponse(responseCode = "401", description = "Authentication is required"),
+            @ApiResponse(responseCode = "403", description = "Requester is not an employee, the order "
+                    + "belongs to another restaurant, or the security PIN does not match"),
+            @ApiResponse(responseCode = "404", description = "The order does not exist or the employee is "
+                    + "not assigned to any restaurant"),
+            @ApiResponse(responseCode = "409", description = "The order is not in READY status"),
+            @ApiResponse(responseCode = "502", description = "messaging-service is unavailable; the order "
+                    + "remains in READY and the caller may retry")
+    })
+    @PatchMapping("/{orderId}/deliver")
+    public ResponseEntity<OrderResponseDto> markOrderDelivered(
+            @AuthenticationPrincipal AuthenticatedUser authenticatedUser,
+            @PathVariable UUID orderId,
+            @RequestBody DeliverOrderRequestDto request) {
+        return ResponseEntity.ok(
+                orderHandler.markOrderDelivered(orderId, authenticatedUser.userId(), request.getPin()));
     }
 }
