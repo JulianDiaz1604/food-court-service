@@ -87,4 +87,10 @@ public final class DomainConstants {
 
     public static final String CLIENT_NOT_FOUND_MESSAGE =
             "The client associated with this order was not found";
+
+    public static final String ORDER_NOT_FROM_CLIENT_MESSAGE =
+            "The order does not belong to the requesting client";
+
+    public static final String ORDER_NOT_CANCELLABLE_MESSAGE =
+            "Sorry, your order can no longer be cancelled";
 }

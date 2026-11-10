@@ -519,3 +519,40 @@ eventually reaches the correct state.
 | `MessagingServiceUnavailableException` | The messaging service is currently unavailable; please try again later | 502 |
 | (unauthenticated request) | Authentication is required | 401 |
 | (authenticated, non-employee role) | (Spring Security forbidden) | 403 |
+
+---
+
+## HU16 — Cancel order
+
+- **Role:** Client
+- **Endpoint:** `PATCH /api/v1/orders/{orderId}/cancel`
+- **Use case:** `CancelOrderUseCase.cancelOrder` (dedicated use case; depends only on persistence +
+  validator — no cross-service ports).
+- **Validator:** `OrderValidator.validateCancellable` (pure state-transition rule: order must be in
+  `PENDING`).
+- **Persistence ports:**
+  - `IOrderPersistencePort.findOrderById` → `OrderJpaAdapter` (loads the target order).
+  - `IOrderPersistencePort.saveOrder` → `OrderJpaAdapter` (persists the CANCELLED status).
+
+### Business rules / invariants
+- **Criterion 1 — only `PENDING` orders may be cancelled.** Any other status raises
+  `OrderNotCancellableException` (409).
+- **Criterion 2 — user-facing message.** When the order is not `PENDING`, the message returned is
+  exactly *"Sorry, your order can no longer be cancelled"* (the challenge's Spanish wording is kept
+  in English to stay consistent with the rest of the codebase, per CLAUDE.md §4).
+- A client may cancel **only their own order**: the order's `clientId` must match the authenticated
+  client, otherwise `OrderNotFromClientException` (403).
+- If the order does not exist, `OrderNotFoundException` (404).
+- The transition performed is **`PENDING → CANCELLED`**.
+- The client is taken from the JWT (`@AuthenticationPrincipal`), never from the body.
+- Authorization: only the **CLIENT** role may cancel orders
+  (`PATCH /api/v1/orders/*/cancel` → CLIENT rule in `SecurityConfig`).
+
+### Exceptions
+| Exception | Message | HTTP |
+|-----------|---------|------|
+| `OrderNotFoundException` | The order does not exist | 404 |
+| `OrderNotFromClientException` | The order does not belong to the requesting client | 403 |
+| `OrderNotCancellableException` | Sorry, your order can no longer be cancelled | 409 |
+| (unauthenticated request) | Authentication is required | 401 |
+| (authenticated, non-client role) | (Spring Security forbidden) | 403 |

@@ -128,4 +128,22 @@ public class OrderRestController {
         return ResponseEntity.ok(
                 orderHandler.markOrderDelivered(orderId, authenticatedUser.userId(), request.getPin()));
     }
+
+    @Operation(summary = "Cancel a PENDING order (client only; the client is taken from the "
+            + "authenticated token)")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Order cancelled"),
+            @ApiResponse(responseCode = "401", description = "Authentication is required"),
+            @ApiResponse(responseCode = "403", description = "Requester is not a client or the order "
+                    + "belongs to another client"),
+            @ApiResponse(responseCode = "404", description = "The order does not exist"),
+            @ApiResponse(responseCode = "409", description = "The order is not in PENDING status and "
+                    + "can no longer be cancelled")
+    })
+    @PatchMapping("/{orderId}/cancel")
+    public ResponseEntity<OrderResponseDto> cancelOrder(
+            @AuthenticationPrincipal AuthenticatedUser authenticatedUser,
+            @PathVariable UUID orderId) {
+        return ResponseEntity.ok(orderHandler.cancelOrder(orderId, authenticatedUser.userId()));
+    }
 }
