@@ -1,5 +1,6 @@
 package com.pragma.foodcourt.infrastructure.configuration;
 
+import com.pragma.foodcourt.domain.api.ICancelOrderServicePort;
 import com.pragma.foodcourt.domain.api.IDishServicePort;
 import com.pragma.foodcourt.domain.api.IEmployeeServicePort;
 import com.pragma.foodcourt.domain.api.IOrderQueryServicePort;
@@ -16,6 +17,7 @@ import com.pragma.foodcourt.domain.spi.IUserClientPort;
 import com.pragma.foodcourt.domain.usecase.DishUseCase;
 import com.pragma.foodcourt.domain.service.EmployeeRestaurantResolver;
 import com.pragma.foodcourt.domain.usecase.EmployeeUseCase;
+import com.pragma.foodcourt.domain.usecase.CancelOrderUseCase;
 import com.pragma.foodcourt.domain.usecase.OrderQueryUseCase;
 import com.pragma.foodcourt.domain.usecase.OrderStatusUseCase;
 import com.pragma.foodcourt.domain.usecase.PlaceOrderUseCase;
@@ -180,6 +182,11 @@ public class BeanConfiguration {
     public IOrderQueryServicePort orderQueryServicePort() {
         return new OrderQueryUseCase(orderPersistencePort(), orderValidator(),
                 paginationValidator(), employeeRestaurantResolver());
+    }
+
+    @Bean
+    public ICancelOrderServicePort cancelOrderServicePort() {
+        return new CancelOrderUseCase(orderPersistencePort(), orderValidator());
     }
 
     @Bean

@@ -4,6 +4,7 @@ import com.pragma.foodcourt.domain.exception.EmptyOrderException;
 import com.pragma.foodcourt.domain.exception.InvalidOrderStatusException;
 import com.pragma.foodcourt.domain.exception.InvalidQuantityException;
 import com.pragma.foodcourt.domain.exception.OrderNotAssignableException;
+import com.pragma.foodcourt.domain.exception.OrderNotCancellableException;
 import com.pragma.foodcourt.domain.exception.OrderNotInPreparationException;
 import com.pragma.foodcourt.domain.exception.OrderNotReadyException;
 import com.pragma.foodcourt.domain.exception.RequiredFieldException;
@@ -181,5 +182,24 @@ class OrderValidatorTest {
     void shouldThrowWhenDeliveryPinIsBlank() {
         assertThrows(RequiredFieldException.class, () -> orderValidator.validateDeliveryPin(null));
         assertThrows(RequiredFieldException.class, () -> orderValidator.validateDeliveryPin("  "));
+    }
+
+    @Test
+    @DisplayName("Accepts cancelling an order that is in PENDING status")
+    void shouldAcceptCancellableWhenOrderIsPending() {
+        Order order = new Order(null, null, RESTAURANT_ID, OrderStatus.PENDING, null,
+                List.of(new OrderItem(DISH_ID, 1)));
+
+        assertDoesNotThrow(() -> orderValidator.validateCancellable(order));
+    }
+
+    @Test
+    @DisplayName("Rejects cancelling an order that is not in PENDING status")
+    void shouldThrowWhenCancellingNonPendingOrder() {
+        Order order = new Order(null, null, RESTAURANT_ID, OrderStatus.IN_PREPARATION, null,
+                List.of(new OrderItem(DISH_ID, 1)));
+
+        assertThrows(OrderNotCancellableException.class,
+                () -> orderValidator.validateCancellable(order));
     }
 }

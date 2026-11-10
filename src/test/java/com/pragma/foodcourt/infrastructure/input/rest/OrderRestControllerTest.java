@@ -109,4 +109,20 @@ class OrderRestControllerTest {
         assertEquals(expected, response.getBody());
         verify(orderHandler).markOrderDelivered(orderId, employeeId, "123456");
     }
+
+    @Test
+    void whenCancelOrderCalledWithTypedClientPrincipalThenPassesClientUserIdToHandler() {
+        // HU16: CLIENT cancels their own order; clientId comes from the typed principal
+        UUID clientId = UUID.randomUUID();
+        UUID orderId = UUID.randomUUID();
+        AuthenticatedUser principal = new AuthenticatedUser(clientId, "CLIENT", null);
+        OrderResponseDto expected = new OrderResponseDto();
+        when(orderHandler.cancelOrder(orderId, clientId)).thenReturn(expected);
+
+        ResponseEntity<OrderResponseDto> response = controller.cancelOrder(principal, orderId);
+
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertEquals(expected, response.getBody());
+        verify(orderHandler).cancelOrder(orderId, clientId);
+    }
 }

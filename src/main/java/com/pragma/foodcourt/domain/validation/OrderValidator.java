@@ -4,6 +4,7 @@ import com.pragma.foodcourt.domain.exception.EmptyOrderException;
 import com.pragma.foodcourt.domain.exception.InvalidOrderStatusException;
 import com.pragma.foodcourt.domain.exception.InvalidQuantityException;
 import com.pragma.foodcourt.domain.exception.OrderNotAssignableException;
+import com.pragma.foodcourt.domain.exception.OrderNotCancellableException;
 import com.pragma.foodcourt.domain.exception.OrderNotInPreparationException;
 import com.pragma.foodcourt.domain.exception.OrderNotReadyException;
 import com.pragma.foodcourt.domain.exception.RequiredFieldException;
@@ -49,6 +50,12 @@ public class OrderValidator {
     public void validateDeliveryPin(String pin) {
         if (pin == null || pin.isBlank()) {
             throw new RequiredFieldException();
+        }
+    }
+
+    public void validateCancellable(Order order) {
+        if (order.getStatus() != OrderStatus.PENDING) {
+            throw new OrderNotCancellableException();
         }
     }
 

@@ -17,4 +17,6 @@ public interface IOrderHandler {
     OrderResponseDto markOrderReady(UUID orderId, UUID employeeId);
 
     OrderResponseDto markOrderDelivered(UUID orderId, UUID employeeId, String pin);
+
+    OrderResponseDto cancelOrder(UUID orderId, UUID clientId);
 }

@@ -6,6 +6,7 @@ import com.pragma.foodcourt.application.dto.response.PageResponseDto;
 import com.pragma.foodcourt.application.handler.IOrderHandler;
 import com.pragma.foodcourt.application.mapper.IOrderRequestMapper;
 import com.pragma.foodcourt.application.mapper.IOrderResponseMapper;
+import com.pragma.foodcourt.domain.api.ICancelOrderServicePort;
 import com.pragma.foodcourt.domain.api.IOrderQueryServicePort;
 import com.pragma.foodcourt.domain.api.IOrderStatusServicePort;
 import com.pragma.foodcourt.domain.api.IPlaceOrderServicePort;
@@ -25,6 +26,7 @@ public class OrderHandler implements IOrderHandler {
     private final IPlaceOrderServicePort placeOrderServicePort;
     private final IOrderQueryServicePort orderQueryServicePort;
     private final IOrderStatusServicePort orderStatusServicePort;
+    private final ICancelOrderServicePort cancelOrderServicePort;
     private final IOrderRequestMapper orderRequestMapper;
     private final IOrderResponseMapper orderResponseMapper;
 
@@ -64,5 +66,11 @@ public class OrderHandler implements IOrderHandler {
     public OrderResponseDto markOrderDelivered(UUID orderId, UUID employeeId, String pin) {
         Order deliveredOrder = orderStatusServicePort.markOrderDelivered(orderId, employeeId, pin);
         return orderResponseMapper.toResponse(deliveredOrder);
+    }
+
+    @Override
+    public OrderResponseDto cancelOrder(UUID orderId, UUID clientId) {
+        Order cancelledOrder = cancelOrderServicePort.cancelOrder(orderId, clientId);
+        return orderResponseMapper.toResponse(cancelledOrder);
     }
 }
