@@ -72,7 +72,7 @@ class CancelOrderUseCaseTest {
         assertEquals(OrderStatus.CANCELLED, captor.getValue().getStatus());
         assertSame(captor.getValue(), result);
         verify(orderTraceabilityPort).recordStatusChange(
-                eq(ORDER_ID), eq(CLIENT_ID), eq(OrderStatus.PENDING), eq(OrderStatus.CANCELLED), any());
+                eq(ORDER_ID), eq(CLIENT_ID), any(), eq(OrderStatus.PENDING), eq(OrderStatus.CANCELLED), any());
     }
 
     @Test

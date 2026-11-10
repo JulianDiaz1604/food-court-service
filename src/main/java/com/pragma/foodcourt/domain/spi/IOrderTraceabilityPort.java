@@ -18,10 +18,11 @@ public interface IOrderTraceabilityPort {
      *
      * @param orderId        the order that changed
      * @param clientId       the order's owning client
+     * @param restaurantId   the order's restaurant (used by traceability to scope efficiency reports)
      * @param previousStatus the status before the change ({@code null} for order creation)
      * @param newStatus      the status after the change
      * @param employeeId     the employee who triggered it ({@code null} for client-driven changes)
      */
-    void recordStatusChange(UUID orderId, UUID clientId, OrderStatus previousStatus,
-                            OrderStatus newStatus, UUID employeeId);
+    void recordStatusChange(UUID orderId, UUID clientId, UUID restaurantId,
+                            OrderStatus previousStatus, OrderStatus newStatus, UUID employeeId);
 }

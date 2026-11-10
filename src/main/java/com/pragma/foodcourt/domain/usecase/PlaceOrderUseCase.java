@@ -47,7 +47,8 @@ public class PlaceOrderUseCase implements IPlaceOrderServicePort {
         order.setStatus(OrderStatus.PENDING);
         Order savedOrder = orderPersistencePort.saveOrder(order);
         orderTraceabilityPort.recordStatusChange(
-                savedOrder.getId(), clientId, null, OrderStatus.PENDING, null);
+                savedOrder.getId(), clientId, savedOrder.getRestaurantId(),
+                null, OrderStatus.PENDING, null);
         return savedOrder;
     }
 
