@@ -26,6 +26,7 @@ public class SecurityConfig {
     private static final String DISHES_ITEM_ENDPOINT = "/api/v1/dishes/**";
     private static final String ORDERS_ENDPOINT = "/api/v1/orders";
     private static final String ORDERS_ASSIGN_ENDPOINT = "/api/v1/orders/*/assign";
+    private static final String ORDERS_READY_ENDPOINT = "/api/v1/orders/*/ready";
     private static final String[] PUBLIC_ENDPOINTS = {
             "/swagger-ui/**",
             "/swagger-ui.html",
@@ -66,6 +67,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, ORDERS_ENDPOINT).hasRole(CLIENT_ROLE)
                         .requestMatchers(HttpMethod.GET, ORDERS_ENDPOINT).hasRole(EMPLOYEE_ROLE)
                         .requestMatchers(HttpMethod.PATCH, ORDERS_ASSIGN_ENDPOINT).hasRole(EMPLOYEE_ROLE)
+                        .requestMatchers(HttpMethod.PATCH, ORDERS_READY_ENDPOINT).hasRole(EMPLOYEE_ROLE)
                         .anyRequest().authenticated())
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 

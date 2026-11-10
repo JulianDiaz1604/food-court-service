@@ -13,4 +13,6 @@ public interface IOrderHandler {
             UUID employeeId, String status, int page, int size);
 
     OrderResponseDto assignOrder(UUID orderId, UUID employeeId);
+
+    OrderResponseDto markOrderReady(UUID orderId, UUID employeeId);
 }

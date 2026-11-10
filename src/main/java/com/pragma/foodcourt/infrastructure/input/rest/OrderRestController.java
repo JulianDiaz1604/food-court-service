@@ -84,4 +84,24 @@ public class OrderRestController {
             @PathVariable UUID orderId) {
         return ResponseEntity.ok(orderHandler.assignOrder(orderId, authenticatedUser.userId()));
     }
+
+    @Operation(summary = "Mark an IN_PREPARATION order as READY and notify the client by SMS "
+            + "(employee only; the employee is taken from the authenticated token)")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Order marked as READY and client notified"),
+            @ApiResponse(responseCode = "401", description = "Authentication is required"),
+            @ApiResponse(responseCode = "403", description = "Requester is not an employee or the order "
+                    + "belongs to another restaurant"),
+            @ApiResponse(responseCode = "404", description = "The order does not exist, the employee is "
+                    + "not assigned to any restaurant, or the client account was not found"),
+            @ApiResponse(responseCode = "409", description = "The order is not in IN_PREPARATION status"),
+            @ApiResponse(responseCode = "502", description = "users-service or messaging-service is "
+                    + "unavailable; the order remains in IN_PREPARATION and the caller may retry")
+    })
+    @PatchMapping("/{orderId}/ready")
+    public ResponseEntity<OrderResponseDto> markOrderReady(
+            @AuthenticationPrincipal AuthenticatedUser authenticatedUser,
+            @PathVariable UUID orderId) {
+        return ResponseEntity.ok(orderHandler.markOrderReady(orderId, authenticatedUser.userId()));
+    }
 }

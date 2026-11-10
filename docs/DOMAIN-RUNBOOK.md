@@ -364,6 +364,69 @@ the requester's identity now comes from the token instead of the request body.
 | (unauthenticated request) | Authentication is required | 401 |
 | (authenticated, non-employee role) | (Spring Security forbidden) | 403 |
 
+## HU14 — Mark order as ready and notify the client
+
+- **Role:** Employee
+- **Endpoint:** `PATCH /api/v1/orders/{orderId}/ready`
+- **Use case:** `OrderUseCase.markOrderReady`
+- **Validator:** `OrderValidator.validateReadyTransition` (pure state-transition rule: order must be
+  in `IN_PREPARATION`).
+- **Persistence ports:**
+  - `IOrderPersistencePort.findOrderById` → `OrderJpaAdapter` (loads the target order).
+  - `IEmployeePersistencePort.findRestaurantIdByEmployee` → `EmployeeRestaurantJpaAdapter`.
+  - `IOrderPersistencePort.saveOrder` → `OrderJpaAdapter` (persists the READY status).
+- **Cross-service ports (new):**
+  - `IUserClientPort.getUserContactById` → `UsersRestClientAdapter`
+    (`GET /api/v1/users/{clientId}` on users-service; extracts `phone` and constructs `name`).
+  - `IOrderReadyNotificationPort.notifyOrderReady` → `MessagingRestClientAdapter`
+    (`POST /api/v1/notifications/order-ready` on messaging-service with `{orderId, phone, clientName}`).
+
+### Business rules / invariants
+- An employee may mark an order ready **only if the order belongs to their restaurant** (same rule
+  as HU13): the order's `restaurantId` must match the restaurant resolved from the
+  `employee_restaurant` link, otherwise `OrderNotFromEmployeeRestaurantException` (403).
+- If the order does not exist, `OrderNotFoundException` (404).
+- If the employee is not linked to any restaurant, `EmployeeNotLinkedToRestaurantException` (404).
+- The order must be in **`IN_PREPARATION`** status; any other status raises
+  `OrderNotInPreparationException` (409).
+- The employee is taken from the JWT (`@AuthenticationPrincipal`), never from the body.
+- Authorization: only the **EMPLOYEE** role may mark orders ready
+  (`PATCH /api/v1/orders/*/ready` → EMPLOYEE rule in `SecurityConfig`).
+
+### Saga ordering (notification precedes persist)
+The use case executes steps in this exact order:
+1. Load order → guard (not found, wrong restaurant, wrong status).
+2. Resolve client phone via `IUserClientPort`.
+3. Send SMS via `IOrderReadyNotificationPort`.
+4. **Only after a successful notification**, set `status = READY` and persist.
+
+This ordering means that if the notification fails the order stays in `IN_PREPARATION` and the
+caller may safely retry. The retry re-resolves the phone and re-sends the notification; this is
+safe because messaging-service applies a duplicate-notification guard per order.
+
+#### Known partial-failure edge case
+If the notification **succeeds** but the subsequent `saveOrder` call fails (e.g., transient DB
+error), the order remains in `IN_PREPARATION` while the client has already received the SMS. A
+subsequent retry of `PATCH /api/v1/orders/{orderId}/ready` will pass through steps 1–3 again and
+hit the messaging-service's duplicate-notification guard before successfully persisting `READY`.
+This is a known and acceptable trade-off; the rare duplicate notification is harmless and the order
+eventually reaches the correct state.
+
+### Exceptions
+| Exception | Message | HTTP |
+|-----------|---------|------|
+| `OrderNotFoundException` | The order does not exist | 404 |
+| `EmployeeNotLinkedToRestaurantException` | The employee is not assigned to any restaurant | 404 |
+| `ClientNotFoundException` | The client associated with this order was not found | 404 |
+| `OrderNotFromEmployeeRestaurantException` | The order does not belong to the employee's restaurant | 403 |
+| `OrderNotInPreparationException` | Only orders in IN_PREPARATION status can be marked as ready | 409 |
+| `UserServiceUnavailableException` | The users service is currently unavailable; please try again later | 502 |
+| `MessagingServiceUnavailableException` | The messaging service is currently unavailable; please try again later | 502 |
+| (unauthenticated request) | Authentication is required | 401 |
+| (authenticated, non-employee role) | (Spring Security forbidden) | 403 |
+
+---
+
 ## HU13 — Assign order and move it to IN_PREPARATION
 
 - **Role:** Employee
