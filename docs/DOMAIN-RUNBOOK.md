@@ -556,3 +556,28 @@ eventually reaches the correct state.
 | `OrderNotCancellableException` | Sorry, your order can no longer be cancelled | 409 |
 | (unauthenticated request) | Authentication is required | 401 |
 | (authenticated, non-client role) | (Spring Security forbidden) | 403 |
+
+---
+
+## HU17 — Order traceability emission (producer side)
+
+food-court-service is the **producer** of traceability records; traceability-service owns the store
+and the client-facing history query (see that service's runbook).
+
+- **Port:** `IOrderTraceabilityPort.recordStatusChange(orderId, clientId, previousStatus, newStatus,
+  employeeId)` → `TraceabilityRestClientAdapter` (`POST /api/v1/traces` on traceability-service,
+  JWT forwarded).
+- **Emitted on every transition**, after the new state is persisted:
+  | Transition | previousStatus | newStatus | employeeId |
+  |-----------|----------------|-----------|------------|
+  | Place order (`PlaceOrderUseCase`) | `null` | `PENDING` | `null` |
+  | Assign (`OrderStatusUseCase`) | `PENDING` | `IN_PREPARATION` | employee |
+  | Mark ready (`OrderStatusUseCase`) | `IN_PREPARATION` | `READY` | employee |
+  | Deliver (`OrderStatusUseCase`) | `READY` | `DELIVERED` | employee |
+  | Cancel (`CancelOrderUseCase`) | `PENDING` | `CANCELLED` | `null` |
+
+### Business rules / invariants
+- **Best-effort (resilient):** recording is done **after** the transition is persisted and a
+  traceability failure is logged and swallowed by the adapter — a traceability outage never blocks
+  or rolls back the order lifecycle. No new exception or HTTP status is introduced on this path.
+- The client/employee ids come from the already-loaded order and the JWT, never from the request body.

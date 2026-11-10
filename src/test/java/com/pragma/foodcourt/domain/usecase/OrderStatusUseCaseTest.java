@@ -19,6 +19,7 @@ import com.pragma.foodcourt.domain.model.UserContact;
 import com.pragma.foodcourt.domain.spi.IOrderDeliveryPinPort;
 import com.pragma.foodcourt.domain.spi.IOrderPersistencePort;
 import com.pragma.foodcourt.domain.spi.IOrderReadyNotificationPort;
+import com.pragma.foodcourt.domain.spi.IOrderTraceabilityPort;
 import com.pragma.foodcourt.domain.spi.IUserClientPort;
 import com.pragma.foodcourt.domain.validation.OrderValidator;
 import org.junit.jupiter.api.BeforeEach;
@@ -64,6 +65,9 @@ class OrderStatusUseCaseTest {
     private IOrderDeliveryPinPort orderDeliveryPinPort;
 
     @Mock
+    private IOrderTraceabilityPort orderTraceabilityPort;
+
+    @Mock
     private EmployeeRestaurantResolver employeeRestaurantResolver;
 
     private OrderStatusUseCase orderStatusUseCase;
@@ -72,7 +76,7 @@ class OrderStatusUseCaseTest {
     void setUp() {
         orderStatusUseCase = new OrderStatusUseCase(orderPersistencePort, new OrderValidator(),
                 userClientPort, orderReadyNotificationPort, orderDeliveryPinPort,
-                employeeRestaurantResolver);
+                orderTraceabilityPort, employeeRestaurantResolver);
     }
 
     private Order orderInStatus(UUID restaurantId, OrderStatus status) {

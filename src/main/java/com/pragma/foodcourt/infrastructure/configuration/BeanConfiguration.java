@@ -12,6 +12,7 @@ import com.pragma.foodcourt.domain.spi.IEmployeePersistencePort;
 import com.pragma.foodcourt.domain.spi.IOrderDeliveryPinPort;
 import com.pragma.foodcourt.domain.spi.IOrderPersistencePort;
 import com.pragma.foodcourt.domain.spi.IOrderReadyNotificationPort;
+import com.pragma.foodcourt.domain.spi.IOrderTraceabilityPort;
 import com.pragma.foodcourt.domain.spi.IRestaurantPersistencePort;
 import com.pragma.foodcourt.domain.spi.IUserClientPort;
 import com.pragma.foodcourt.domain.usecase.DishUseCase;
@@ -28,6 +29,7 @@ import com.pragma.foodcourt.domain.validation.PaginationValidator;
 import com.pragma.foodcourt.domain.validation.RestaurantValidator;
 import com.pragma.foodcourt.infrastructure.out.client.AuthorizationForwardingInterceptor;
 import com.pragma.foodcourt.infrastructure.out.client.MessagingRestClientAdapter;
+import com.pragma.foodcourt.infrastructure.out.client.TraceabilityRestClientAdapter;
 import com.pragma.foodcourt.infrastructure.out.client.UsersRestClientAdapter;
 import com.pragma.foodcourt.infrastructure.out.jpa.adapter.DishJpaAdapter;
 import com.pragma.foodcourt.infrastructure.out.jpa.adapter.EmployeeRestaurantJpaAdapter;
@@ -145,6 +147,21 @@ public class BeanConfiguration {
     }
 
     @Bean
+    public RestClient traceabilityRestClient(
+            @Value("${traceability-service.base-url}") String baseUrl,
+            AuthorizationForwardingInterceptor authorizationForwardingInterceptor) {
+        return RestClient.builder()
+                .baseUrl(baseUrl)
+                .requestInterceptor(authorizationForwardingInterceptor)
+                .build();
+    }
+
+    @Bean
+    public IOrderTraceabilityPort orderTraceabilityPort(RestClient traceabilityRestClient) {
+        return new TraceabilityRestClientAdapter(traceabilityRestClient);
+    }
+
+    @Bean
     public IUserClientPort userClientPort(RestClient usersRestClient) {
         return new UsersRestClientAdapter(usersRestClient);
     }
@@ -173,9 +190,9 @@ public class BeanConfiguration {
     }
 
     @Bean
-    public IPlaceOrderServicePort placeOrderServicePort() {
+    public IPlaceOrderServicePort placeOrderServicePort(IOrderTraceabilityPort orderTraceabilityPort) {
         return new PlaceOrderUseCase(orderPersistencePort(), restaurantPersistencePort(),
-                dishPersistencePort(), orderValidator());
+                dishPersistencePort(), orderValidator(), orderTraceabilityPort);
     }
 
     @Bean
@@ -185,17 +202,18 @@ public class BeanConfiguration {
     }
 
     @Bean
-    public ICancelOrderServicePort cancelOrderServicePort() {
-        return new CancelOrderUseCase(orderPersistencePort(), orderValidator());
+    public ICancelOrderServicePort cancelOrderServicePort(IOrderTraceabilityPort orderTraceabilityPort) {
+        return new CancelOrderUseCase(orderPersistencePort(), orderValidator(), orderTraceabilityPort);
     }
 
     @Bean
     public IOrderStatusServicePort orderStatusServicePort(
             IUserClientPort userClientPort,
             IOrderReadyNotificationPort orderReadyNotificationPort,
-            IOrderDeliveryPinPort orderDeliveryPinPort) {
+            IOrderDeliveryPinPort orderDeliveryPinPort,
+            IOrderTraceabilityPort orderTraceabilityPort) {
         return new OrderStatusUseCase(orderPersistencePort(), orderValidator(),
                 userClientPort, orderReadyNotificationPort, orderDeliveryPinPort,
-                employeeRestaurantResolver());
+                orderTraceabilityPort, employeeRestaurantResolver());
     }
 }

@@ -11,6 +11,7 @@ import com.pragma.foodcourt.domain.model.OrderItem;
 import com.pragma.foodcourt.domain.model.OrderStatus;
 import com.pragma.foodcourt.domain.spi.IDishPersistencePort;
 import com.pragma.foodcourt.domain.spi.IOrderPersistencePort;
+import com.pragma.foodcourt.domain.spi.IOrderTraceabilityPort;
 import com.pragma.foodcourt.domain.spi.IRestaurantPersistencePort;
 import com.pragma.foodcourt.domain.validation.OrderValidator;
 
@@ -22,15 +23,18 @@ public class PlaceOrderUseCase implements IPlaceOrderServicePort {
     private final IRestaurantPersistencePort restaurantPersistencePort;
     private final IDishPersistencePort dishPersistencePort;
     private final OrderValidator orderValidator;
+    private final IOrderTraceabilityPort orderTraceabilityPort;
 
     public PlaceOrderUseCase(IOrderPersistencePort orderPersistencePort,
                              IRestaurantPersistencePort restaurantPersistencePort,
                              IDishPersistencePort dishPersistencePort,
-                             OrderValidator orderValidator) {
+                             OrderValidator orderValidator,
+                             IOrderTraceabilityPort orderTraceabilityPort) {
         this.orderPersistencePort = orderPersistencePort;
         this.restaurantPersistencePort = restaurantPersistencePort;
         this.dishPersistencePort = dishPersistencePort;
         this.orderValidator = orderValidator;
+        this.orderTraceabilityPort = orderTraceabilityPort;
     }
 
     @Override
@@ -41,7 +45,10 @@ public class PlaceOrderUseCase implements IPlaceOrderServicePort {
         ensureDishesBelongToRestaurant(order);
         order.setClientId(clientId);
         order.setStatus(OrderStatus.PENDING);
-        return orderPersistencePort.saveOrder(order);
+        Order savedOrder = orderPersistencePort.saveOrder(order);
+        orderTraceabilityPort.recordStatusChange(
+                savedOrder.getId(), clientId, null, OrderStatus.PENDING, null);
+        return savedOrder;
     }
 
     private void ensureRestaurantExists(UUID restaurantId) {

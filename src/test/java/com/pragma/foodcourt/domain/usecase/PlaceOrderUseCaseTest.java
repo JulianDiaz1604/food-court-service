@@ -12,6 +12,7 @@ import com.pragma.foodcourt.domain.model.OrderStatus;
 import com.pragma.foodcourt.domain.model.Restaurant;
 import com.pragma.foodcourt.domain.spi.IDishPersistencePort;
 import com.pragma.foodcourt.domain.spi.IOrderPersistencePort;
+import com.pragma.foodcourt.domain.spi.IOrderTraceabilityPort;
 import com.pragma.foodcourt.domain.spi.IRestaurantPersistencePort;
 import com.pragma.foodcourt.domain.validation.OrderValidator;
 import org.junit.jupiter.api.BeforeEach;
@@ -29,6 +30,7 @@ import java.util.UUID;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -49,6 +51,9 @@ class PlaceOrderUseCaseTest {
     @Mock
     private IDishPersistencePort dishPersistencePort;
 
+    @Mock
+    private IOrderTraceabilityPort orderTraceabilityPort;
+
     private PlaceOrderUseCase placeOrderUseCase;
     private Order validOrder;
     private Restaurant restaurant;
@@ -57,7 +62,7 @@ class PlaceOrderUseCaseTest {
     @BeforeEach
     void setUp() {
         placeOrderUseCase = new PlaceOrderUseCase(orderPersistencePort, restaurantPersistencePort,
-                dishPersistencePort, new OrderValidator());
+                dishPersistencePort, new OrderValidator(), orderTraceabilityPort);
         validOrder = new Order(null, null, RESTAURANT_ID, null, null,
                 new ArrayList<>(List.of(new OrderItem(DISH_ID, 2))));
         restaurant = new Restaurant(RESTAURANT_ID, "Tablaito", "900123456",
@@ -83,6 +88,8 @@ class PlaceOrderUseCaseTest {
         assertEquals(OrderStatus.PENDING, saved.getStatus());
         assertEquals(CLIENT_ID, saved.getClientId());
         assertEquals(RESTAURANT_ID, saved.getRestaurantId());
+        verify(orderTraceabilityPort)
+                .recordStatusChange(any(), eq(CLIENT_ID), any(), eq(OrderStatus.PENDING), any());
     }
 
     @Test
