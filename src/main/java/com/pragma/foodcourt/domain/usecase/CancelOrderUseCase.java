@@ -45,7 +45,7 @@ public class CancelOrderUseCase implements ICancelOrderServicePort {
         order.setStatus(OrderStatus.CANCELLED);
         Order savedOrder = orderPersistencePort.saveOrder(order);
         orderTraceabilityPort.recordStatusChange(savedOrder.getId(), savedOrder.getClientId(),
-                previousStatus, OrderStatus.CANCELLED, null);
+                savedOrder.getRestaurantId(), previousStatus, OrderStatus.CANCELLED, null);
         return savedOrder;
     }
 }

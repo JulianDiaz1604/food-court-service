@@ -33,10 +33,10 @@ public class TraceabilityRestClientAdapter implements IOrderTraceabilityPort {
     }
 
     @Override
-    public void recordStatusChange(UUID orderId, UUID clientId, OrderStatus previousStatus,
-                                   OrderStatus newStatus, UUID employeeId) {
+    public void recordStatusChange(UUID orderId, UUID clientId, UUID restaurantId,
+                                   OrderStatus previousStatus, OrderStatus newStatus, UUID employeeId) {
         RecordTraceRequestDto body = new RecordTraceRequestDto(
-                orderId, clientId, name(previousStatus), name(newStatus), employeeId);
+                orderId, clientId, restaurantId, name(previousStatus), name(newStatus), employeeId);
         try {
             restClient.post()
                     .uri(TRACES_PATH)

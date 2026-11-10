@@ -89,7 +89,7 @@ class PlaceOrderUseCaseTest {
         assertEquals(CLIENT_ID, saved.getClientId());
         assertEquals(RESTAURANT_ID, saved.getRestaurantId());
         verify(orderTraceabilityPort)
-                .recordStatusChange(any(), eq(CLIENT_ID), any(), eq(OrderStatus.PENDING), any());
+                .recordStatusChange(any(), eq(CLIENT_ID), any(), any(), eq(OrderStatus.PENDING), any());
     }
 
     @Test

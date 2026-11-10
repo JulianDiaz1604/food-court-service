@@ -581,3 +581,6 @@ and the client-facing history query (see that service's runbook).
   traceability failure is logged and swallowed by the adapter — a traceability outage never blocks
   or rolls back the order lifecycle. No new exception or HTTP status is introduced on this path.
 - The client/employee ids come from the already-loaded order and the JWT, never from the request body.
+- **HU18 update:** each emitted trace now also carries the order's `restaurantId`, so
+  traceability-service can scope its owner efficiency reports (PENDING → DELIVERED durations) per
+  restaurant. Same best-effort emission on every transition.

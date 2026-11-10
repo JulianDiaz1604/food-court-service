@@ -52,7 +52,7 @@ public class OrderStatusUseCase implements IOrderStatusServicePort {
         order.setStatus(OrderStatus.IN_PREPARATION);
         Order savedOrder = orderPersistencePort.saveOrder(order);
         orderTraceabilityPort.recordStatusChange(savedOrder.getId(), savedOrder.getClientId(),
-                previousStatus, OrderStatus.IN_PREPARATION, employeeId);
+                savedOrder.getRestaurantId(), previousStatus, OrderStatus.IN_PREPARATION, employeeId);
         return savedOrder;
     }
 
@@ -74,7 +74,7 @@ public class OrderStatusUseCase implements IOrderStatusServicePort {
         order.setStatus(OrderStatus.READY);
         Order savedOrder = orderPersistencePort.saveOrder(order);
         orderTraceabilityPort.recordStatusChange(savedOrder.getId(), savedOrder.getClientId(),
-                previousStatus, OrderStatus.READY, employeeId);
+                savedOrder.getRestaurantId(), previousStatus, OrderStatus.READY, employeeId);
         return savedOrder;
     }
 
@@ -96,7 +96,7 @@ public class OrderStatusUseCase implements IOrderStatusServicePort {
         order.setStatus(OrderStatus.DELIVERED);
         Order savedOrder = orderPersistencePort.saveOrder(order);
         orderTraceabilityPort.recordStatusChange(savedOrder.getId(), savedOrder.getClientId(),
-                previousStatus, OrderStatus.DELIVERED, employeeId);
+                savedOrder.getRestaurantId(), previousStatus, OrderStatus.DELIVERED, employeeId);
         return savedOrder;
     }
 
