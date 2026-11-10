@@ -8,6 +8,7 @@ import com.pragma.foodcourt.domain.api.IPlaceOrderServicePort;
 import com.pragma.foodcourt.domain.api.IRestaurantServicePort;
 import com.pragma.foodcourt.domain.spi.IDishPersistencePort;
 import com.pragma.foodcourt.domain.spi.IEmployeePersistencePort;
+import com.pragma.foodcourt.domain.spi.IOrderDeliveryPinPort;
 import com.pragma.foodcourt.domain.spi.IOrderPersistencePort;
 import com.pragma.foodcourt.domain.spi.IOrderReadyNotificationPort;
 import com.pragma.foodcourt.domain.spi.IRestaurantPersistencePort;
@@ -146,9 +147,22 @@ public class BeanConfiguration {
         return new UsersRestClientAdapter(usersRestClient);
     }
 
+    // One messaging adapter exposed under both messaging-facing ports (notify + PIN validation).
     @Bean
-    public IOrderReadyNotificationPort orderReadyNotificationPort(RestClient messagingRestClient) {
+    public MessagingRestClientAdapter messagingRestClientAdapter(RestClient messagingRestClient) {
         return new MessagingRestClientAdapter(messagingRestClient);
+    }
+
+    @Bean
+    public IOrderReadyNotificationPort orderReadyNotificationPort(
+            MessagingRestClientAdapter messagingRestClientAdapter) {
+        return messagingRestClientAdapter;
+    }
+
+    @Bean
+    public IOrderDeliveryPinPort orderDeliveryPinPort(
+            MessagingRestClientAdapter messagingRestClientAdapter) {
+        return messagingRestClientAdapter;
     }
 
     @Bean
@@ -171,8 +185,10 @@ public class BeanConfiguration {
     @Bean
     public IOrderStatusServicePort orderStatusServicePort(
             IUserClientPort userClientPort,
-            IOrderReadyNotificationPort orderReadyNotificationPort) {
+            IOrderReadyNotificationPort orderReadyNotificationPort,
+            IOrderDeliveryPinPort orderDeliveryPinPort) {
         return new OrderStatusUseCase(orderPersistencePort(), orderValidator(),
-                userClientPort, orderReadyNotificationPort, employeeRestaurantResolver());
+                userClientPort, orderReadyNotificationPort, orderDeliveryPinPort,
+                employeeRestaurantResolver());
     }
 }

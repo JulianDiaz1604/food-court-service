@@ -73,6 +73,12 @@ public final class DomainConstants {
     public static final String ORDER_NOT_IN_PREPARATION_MESSAGE =
             "Only orders in IN_PREPARATION status can be marked as ready";
 
+    public static final String ORDER_NOT_READY_MESSAGE =
+            "Only orders in READY status can be marked as delivered";
+
+    public static final String INVALID_DELIVERY_PIN_MESSAGE =
+            "The security PIN does not match the one sent to the client";
+
     public static final String USER_SERVICE_UNAVAILABLE_MESSAGE =
             "The users service is currently unavailable; please try again later";
 

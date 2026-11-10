@@ -5,6 +5,7 @@ import com.pragma.foodcourt.domain.exception.InvalidOrderStatusException;
 import com.pragma.foodcourt.domain.exception.InvalidQuantityException;
 import com.pragma.foodcourt.domain.exception.OrderNotAssignableException;
 import com.pragma.foodcourt.domain.exception.OrderNotInPreparationException;
+import com.pragma.foodcourt.domain.exception.OrderNotReadyException;
 import com.pragma.foodcourt.domain.exception.RequiredFieldException;
 import com.pragma.foodcourt.domain.model.Order;
 import com.pragma.foodcourt.domain.model.OrderItem;
@@ -36,6 +37,18 @@ public class OrderValidator {
     public void validateReadyTransition(Order order) {
         if (order.getStatus() != OrderStatus.IN_PREPARATION) {
             throw new OrderNotInPreparationException();
+        }
+    }
+
+    public void validateDeliverTransition(Order order) {
+        if (order.getStatus() != OrderStatus.READY) {
+            throw new OrderNotReadyException();
+        }
+    }
+
+    public void validateDeliveryPin(String pin) {
+        if (pin == null || pin.isBlank()) {
+            throw new RequiredFieldException();
         }
     }
 

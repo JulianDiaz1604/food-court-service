@@ -5,6 +5,7 @@ import com.pragma.foodcourt.domain.exception.ConflictException;
 import com.pragma.foodcourt.domain.exception.DishNotFoundException;
 import com.pragma.foodcourt.domain.exception.DomainException;
 import com.pragma.foodcourt.domain.exception.EmployeeNotLinkedToRestaurantException;
+import com.pragma.foodcourt.domain.exception.InvalidDeliveryPinException;
 import com.pragma.foodcourt.domain.exception.MessagingServiceUnavailableException;
 import com.pragma.foodcourt.domain.exception.NotRestaurantOwnerException;
 import com.pragma.foodcourt.domain.exception.OrderNotFoundException;
@@ -63,6 +64,13 @@ public class ControllerAdvisor {
     @ExceptionHandler(OrderNotFromEmployeeRestaurantException.class)
     public ResponseEntity<Map<String, String>> handleOrderNotFromEmployeeRestaurantException(
             OrderNotFromEmployeeRestaurantException exception) {
+        return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                .body(Collections.singletonMap(MESSAGE, exception.getMessage()));
+    }
+
+    @ExceptionHandler(InvalidDeliveryPinException.class)
+    public ResponseEntity<Map<String, String>> handleInvalidDeliveryPinException(
+            InvalidDeliveryPinException exception) {
         return ResponseEntity.status(HttpStatus.FORBIDDEN)
                 .body(Collections.singletonMap(MESSAGE, exception.getMessage()));
     }

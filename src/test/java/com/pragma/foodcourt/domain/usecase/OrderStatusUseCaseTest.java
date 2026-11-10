@@ -3,16 +3,20 @@ package com.pragma.foodcourt.domain.usecase;
 import com.pragma.foodcourt.domain.exception.ClientNotFoundException;
 import com.pragma.foodcourt.domain.service.EmployeeRestaurantResolver;
 import com.pragma.foodcourt.domain.exception.EmployeeNotLinkedToRestaurantException;
+import com.pragma.foodcourt.domain.exception.InvalidDeliveryPinException;
 import com.pragma.foodcourt.domain.exception.MessagingServiceUnavailableException;
 import com.pragma.foodcourt.domain.exception.OrderNotAssignableException;
 import com.pragma.foodcourt.domain.exception.OrderNotFoundException;
 import com.pragma.foodcourt.domain.exception.OrderNotFromEmployeeRestaurantException;
 import com.pragma.foodcourt.domain.exception.OrderNotInPreparationException;
+import com.pragma.foodcourt.domain.exception.OrderNotReadyException;
+import com.pragma.foodcourt.domain.exception.RequiredFieldException;
 import com.pragma.foodcourt.domain.exception.UserServiceUnavailableException;
 import com.pragma.foodcourt.domain.model.Order;
 import com.pragma.foodcourt.domain.model.OrderItem;
 import com.pragma.foodcourt.domain.model.OrderStatus;
 import com.pragma.foodcourt.domain.model.UserContact;
+import com.pragma.foodcourt.domain.spi.IOrderDeliveryPinPort;
 import com.pragma.foodcourt.domain.spi.IOrderPersistencePort;
 import com.pragma.foodcourt.domain.spi.IOrderReadyNotificationPort;
 import com.pragma.foodcourt.domain.spi.IUserClientPort;
@@ -57,6 +61,9 @@ class OrderStatusUseCaseTest {
     private IOrderReadyNotificationPort orderReadyNotificationPort;
 
     @Mock
+    private IOrderDeliveryPinPort orderDeliveryPinPort;
+
+    @Mock
     private EmployeeRestaurantResolver employeeRestaurantResolver;
 
     private OrderStatusUseCase orderStatusUseCase;
@@ -64,7 +71,8 @@ class OrderStatusUseCaseTest {
     @BeforeEach
     void setUp() {
         orderStatusUseCase = new OrderStatusUseCase(orderPersistencePort, new OrderValidator(),
-                userClientPort, orderReadyNotificationPort, employeeRestaurantResolver);
+                userClientPort, orderReadyNotificationPort, orderDeliveryPinPort,
+                employeeRestaurantResolver);
     }
 
     private Order orderInStatus(UUID restaurantId, OrderStatus status) {
@@ -238,6 +246,103 @@ class OrderStatusUseCaseTest {
 
         assertThrows(ClientNotFoundException.class,
                 () -> orderStatusUseCase.markOrderReady(ORDER_ID, EMPLOYEE_ID));
+        verify(orderPersistencePort, never()).saveOrder(any());
+    }
+
+    // ---- markOrderDelivered ----
+
+    private static final String VALID_PIN = "123456";
+
+    @Test
+    @DisplayName("Delivers a READY order when the PIN is valid, persisting DELIVERED status")
+    void shouldMarkOrderDeliveredWhenReadyAndPinIsValid() {
+        Order order = orderInStatus(RESTAURANT_ID, OrderStatus.READY);
+        when(orderPersistencePort.findOrderById(ORDER_ID)).thenReturn(order);
+        when(employeeRestaurantResolver.resolveFor(EMPLOYEE_ID)).thenReturn(RESTAURANT_ID);
+        when(orderDeliveryPinPort.isPinValid(ORDER_ID, VALID_PIN)).thenReturn(true);
+        when(orderPersistencePort.saveOrder(any(Order.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+
+        Order result = orderStatusUseCase.markOrderDelivered(ORDER_ID, EMPLOYEE_ID, VALID_PIN);
+
+        ArgumentCaptor<Order> captor = ArgumentCaptor.forClass(Order.class);
+        verify(orderPersistencePort).saveOrder(captor.capture());
+        assertEquals(OrderStatus.DELIVERED, captor.getValue().getStatus());
+        assertEquals(OrderStatus.DELIVERED, result.getStatus());
+    }
+
+    @Test
+    @DisplayName("Rejects delivering an order that does not exist")
+    void shouldThrowOrderNotFoundWhenDeliveringNonExistentOrder() {
+        when(orderPersistencePort.findOrderById(ORDER_ID)).thenReturn(null);
+
+        assertThrows(OrderNotFoundException.class,
+                () -> orderStatusUseCase.markOrderDelivered(ORDER_ID, EMPLOYEE_ID, VALID_PIN));
+        verify(orderPersistencePort, never()).saveOrder(any());
+    }
+
+    @Test
+    @DisplayName("Rejects delivering an order that belongs to another restaurant")
+    void shouldThrowWhenDeliverOrderBelongsToAnotherRestaurant() {
+        when(orderPersistencePort.findOrderById(ORDER_ID))
+                .thenReturn(orderInStatus(UUID.randomUUID(), OrderStatus.READY));
+        when(employeeRestaurantResolver.resolveFor(EMPLOYEE_ID)).thenReturn(RESTAURANT_ID);
+
+        assertThrows(OrderNotFromEmployeeRestaurantException.class,
+                () -> orderStatusUseCase.markOrderDelivered(ORDER_ID, EMPLOYEE_ID, VALID_PIN));
+        verify(orderPersistencePort, never()).saveOrder(any());
+    }
+
+    @Test
+    @DisplayName("Rejects delivering an order that is not in READY status")
+    void shouldThrowWhenDeliverOrderIsNotReady() {
+        when(orderPersistencePort.findOrderById(ORDER_ID))
+                .thenReturn(orderInStatus(RESTAURANT_ID, OrderStatus.IN_PREPARATION));
+        when(employeeRestaurantResolver.resolveFor(EMPLOYEE_ID)).thenReturn(RESTAURANT_ID);
+
+        assertThrows(OrderNotReadyException.class,
+                () -> orderStatusUseCase.markOrderDelivered(ORDER_ID, EMPLOYEE_ID, VALID_PIN));
+        verify(orderDeliveryPinPort, never()).isPinValid(any(), any());
+        verify(orderPersistencePort, never()).saveOrder(any());
+    }
+
+    @Test
+    @DisplayName("Rejects delivering an order when the PIN is blank, without calling messaging-service")
+    void shouldThrowRequiredFieldWhenDeliverPinIsBlank() {
+        when(orderPersistencePort.findOrderById(ORDER_ID))
+                .thenReturn(orderInStatus(RESTAURANT_ID, OrderStatus.READY));
+        when(employeeRestaurantResolver.resolveFor(EMPLOYEE_ID)).thenReturn(RESTAURANT_ID);
+
+        assertThrows(RequiredFieldException.class,
+                () -> orderStatusUseCase.markOrderDelivered(ORDER_ID, EMPLOYEE_ID, "  "));
+        verify(orderDeliveryPinPort, never()).isPinValid(any(), any());
+        verify(orderPersistencePort, never()).saveOrder(any());
+    }
+
+    @Test
+    @DisplayName("Rejects delivering an order when the PIN does not match the one sent to the client")
+    void shouldThrowInvalidDeliveryPinWhenPinDoesNotMatch() {
+        when(orderPersistencePort.findOrderById(ORDER_ID))
+                .thenReturn(orderInStatus(RESTAURANT_ID, OrderStatus.READY));
+        when(employeeRestaurantResolver.resolveFor(EMPLOYEE_ID)).thenReturn(RESTAURANT_ID);
+        when(orderDeliveryPinPort.isPinValid(ORDER_ID, VALID_PIN)).thenReturn(false);
+
+        assertThrows(InvalidDeliveryPinException.class,
+                () -> orderStatusUseCase.markOrderDelivered(ORDER_ID, EMPLOYEE_ID, VALID_PIN));
+        verify(orderPersistencePort, never()).saveOrder(any());
+    }
+
+    @Test
+    @DisplayName("Propagates MessagingServiceUnavailableException without persisting when messaging fails")
+    void shouldThrowMessagingServiceUnavailableAndNotPersistDeliveredWhenMessagingFails() {
+        when(orderPersistencePort.findOrderById(ORDER_ID))
+                .thenReturn(orderInStatus(RESTAURANT_ID, OrderStatus.READY));
+        when(employeeRestaurantResolver.resolveFor(EMPLOYEE_ID)).thenReturn(RESTAURANT_ID);
+        when(orderDeliveryPinPort.isPinValid(ORDER_ID, VALID_PIN))
+                .thenThrow(new MessagingServiceUnavailableException());
+
+        assertThrows(MessagingServiceUnavailableException.class,
+                () -> orderStatusUseCase.markOrderDelivered(ORDER_ID, EMPLOYEE_ID, VALID_PIN));
         verify(orderPersistencePort, never()).saveOrder(any());
     }
 }
